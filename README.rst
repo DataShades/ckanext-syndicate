@@ -113,6 +113,10 @@ If you are using syndication to single endpoint::
     # (optional, default: None)
     ckan.syndicate.author = some_user_name
 
+    # To ignore organization logo image aspect ratio:
+    # (optional, default: false)
+    ckan.syndicate.organization.ignore_logo_aspect_ratio = boolean
+
 If you are using syndication to multiple endpoints, specify multiple
 values for each section, divided either with space or with
 newline. Only distinction is `ckan.syndicate.predicate` directive,

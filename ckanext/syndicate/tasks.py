@@ -190,6 +190,9 @@ def replicate_remote_organization(org):
         org.pop('groups', None)
 
         org.update(image_upload=image_fd)
+        org.update(
+            ignore_image_aspect_ratio=config.get(
+               'ckan.syndicate.organization.ignore_logo_aspect_ratio', False))
 
         remote_org = ckan.action.organization_create(**org)
 
