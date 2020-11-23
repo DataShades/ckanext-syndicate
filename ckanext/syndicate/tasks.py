@@ -196,6 +196,47 @@ def replicate_remote_organization(org):
 
     return remote_org["id"]
 
+def replicate_remote_access_groups(package):
+    original_access_group_ids = _get_original_access_groups(package)
+    ckan = get_target()
+    remote_access_groups = []
+
+    for group_name in original_access_group_ids:
+        try:
+            remote_group = ckan.action.group_show(id=group_name)
+        except toolkit.ObjectNotFound:
+            log.error("Access Group not found, creating new Access Group.")
+            remote_group = None
+        except (toolkit.NotAuthorized, ckanapi.CKANAPIError) as e:
+            log.error(
+                "Error replication error(trying to continue): {}".format(e)
+            )
+        except Exception as e:
+            log.error("Error replication error: {}".format(e))
+            raise
+
+        if not remote_group:
+            original_group = [x for x in package['groups'] if x['name'] == group_name][0]
+            original_group.pop('id')
+            original_group.pop('created', None)
+            remote_group = ckan.action.group_create(**original_group)
+
+        remote_access_groups.append({
+            "id": remote_group.get('id'),
+            "name": remote_group.get('name'),
+            "title": remote_group.get('title'),
+            "description": remote_group.get('description'),
+            "display_name": remote_group.get('display_name'),
+            "image_display_url": remote_group.get('image_url'),
+        })
+
+    return remote_access_groups
+
+def _get_original_access_groups(package):
+    groups = []
+    for group in package.get('groups', []):
+        groups.append(group['name'])
+    return groups
 
 def _create_package(package, profile=None):
     ckan = get_target(
@@ -255,6 +296,9 @@ def _create_package(package, profile=None):
         new_package_data = toolkit.get_action(
             "update_dataset_for_syndication"
         )({}, {"dataset_dict": new_package_data, "package_id": package["id"]})
+        remote_access_groups = replicate_remote_access_groups(package)
+        if remote_access_groups:
+            new_package_data["groups"] = remote_access_groups
     except KeyError as e:
         log.error("Error in update_dataset_for_syndication: {0}".format(e))
 
@@ -394,6 +438,9 @@ def _update_package(package, profile=None):
                 {},
                 {"dataset_dict": updated_package, "package_id": package["id"]},
             )
+            remote_access_groups = replicate_remote_access_groups(package)
+            if remote_access_groups:
+                updated_package["groups"] = remote_access_groups
         except KeyError as e:
             log.error(
                 "Error in update_dataset_for_syndication: {0}".format(e)
