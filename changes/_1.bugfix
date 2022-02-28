@@ -1,1 +1,1 @@
-ISyndicate implementations with inherit flag and no skip_syndication method use default implementaion instead of no-op
+ISyndicate implementations with inherit flag now use default implementaion instead of no-op for skip_syndication method
