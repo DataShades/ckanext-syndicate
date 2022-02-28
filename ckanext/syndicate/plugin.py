@@ -72,18 +72,6 @@ def _syndicate_dataset(package, operation):
         )
         return
 
-    implementations = plugins.PluginImplementations(ISyndicate)
-    skipper: ISyndicate = next(iter(implementations))
-
-    for profile in utils.get_syndicate_profiles():
-        if skipper.skip_syndication(package, profile):
-            log.debug(
-                "Plugin %s decided to skip syndication of %s for profile %s",
-                skipper.name,
-                package.id,
-                profile.id,
-            )
-            continue
-
+    for profile in utils.profiles_for(package):
         log.debug("Syndicate <{}> to {}".format(package.id, profile.ckan_url))
         utils.syndicate_dataset(package.id, topic, profile)

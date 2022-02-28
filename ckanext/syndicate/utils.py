@@ -10,9 +10,10 @@ from typing import Iterable, Iterator, Type
 
 import ckan.model as ckan_model
 import ckan.plugins.toolkit as tk
-from ckan.plugins import get_plugin
+from ckan.plugins import get_plugin, PluginImplementations
 
 from .types import Profile, Topic
+from .interfaces import ISyndicate
 
 CkanDeprecationWarning: Type
 
@@ -111,3 +112,19 @@ def try_sync(id_):
     if not pkg:
         return
     plugin.notify(pkg, "changed")
+
+
+def profiles_for(pkg: ckan_model.Package):
+    implementations = PluginImplementations(ISyndicate)
+    skipper: ISyndicate = next(iter(implementations))
+
+    for profile in get_syndicate_profiles():
+        if skipper.skip_syndication(pkg, profile):
+            log.debug(
+                "Plugin %s decided to skip syndication of %s for profile %s",
+                skipper.name,
+                pkg.id,
+                profile.id,
+            )
+            continue
+        yield profile
