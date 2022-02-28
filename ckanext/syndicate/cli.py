@@ -76,12 +76,12 @@ def check(ids: tuple[str]):
     counter = Counter()
     for pkg in q:
         profiles = utils.profiles_for(pkg)
-
         names = [p.id for p in profiles]
-        click.echo(f"{pkg.id}: {names}")
+        if not names:
+            continue
 
-        for n in names:
-            counter[n] += 1
+        counter.update(names)
+        click.echo(f"{pkg.id}: {','.join(names)}")
 
     if not counter:
         return
