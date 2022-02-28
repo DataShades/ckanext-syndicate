@@ -175,7 +175,7 @@ def _compute_remote_name(package: dict[str, Any], profile: Profile):
     )
     if len(name) > 100:
         uniq = str(uuid.uuid3(uuid.NAMESPACE_DNS, name))
-        name = name[92:] + uniq[:8]
+        name = name[:92] + uniq[:8]
     return name
 
 
