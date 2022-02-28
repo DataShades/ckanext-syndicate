@@ -9,7 +9,8 @@ import ckan.model as model
 import ckan.plugins.toolkit as tk
 import click
 
-import ckanext.syndicate.utils as utils
+from . import utils, tasks
+from .types import Topic
 
 
 def get_commands():
@@ -25,7 +26,8 @@ def syndicate():
 @click.argument("id", required=False)
 @click.option("-t", "--timeout", type=float, default=0)
 @click.option("-f", "--foreground", is_flag=True)
-def sync(id, timeout, foreground):
+@click.pass_context
+def sync(ctx: click.Context, id, timeout, foreground):
     """Syndicate datasets to remote portals."""
 
     packages = model.Session.query(model.Package)
@@ -36,13 +38,23 @@ def sync(id, timeout, foreground):
 
     total = packages.count()
 
-    with click.progressbar(packages, length=total) as bar:
-        for package in bar:
-            bar.label = "Sending syndication signal to package {}".format(
-                package.id
-            )
-            utils.try_sync(package.id)
-            time.sleep(timeout)
+    with ctx.meta["flask_app"].test_request_context():
+        tk.g.syndication = True
+        with click.progressbar(packages, length=total) as bar:
+            for package in bar:
+
+                bar.label = "Sending syndication signal to package {}".format(
+                    package.id
+                )
+                for profile in utils.profiles_for(package):
+                    if foreground:
+                        tasks.sync_package(package.id, Topic.update, profile)
+                    else:
+                        utils.syndicate_dataset(
+                            package.id, Topic.update, profile
+                        )
+
+                time.sleep(timeout)
 
 
 @syndicate.command()
