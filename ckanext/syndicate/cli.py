@@ -81,7 +81,7 @@ def check(ids: tuple[str]):
             continue
 
         counter.update(names)
-        click.echo(f"{pkg.id}: {','.join(names)}")
+        click.echo("{}: {}".format(pkg.id, ", ".join(names)))
 
     if not counter:
         return

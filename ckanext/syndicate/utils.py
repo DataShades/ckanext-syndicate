@@ -6,7 +6,9 @@ import logging
 import warnings
 from collections import defaultdict
 from itertools import zip_longest
-from typing import Iterable, Iterator, Type
+from typing import Iterable, Iterator, Optional, Type
+
+import ckanapi
 
 import ckan.model as ckan_model
 import ckan.plugins.toolkit as tk
@@ -100,9 +102,15 @@ def _parse_profiles(config: dict[str, str]) -> Iterable[Profile]:
         yield Profile(id=id_, **data)
 
 
-def get_syndicate_profiles() -> Iterator[Profile]:
+def get_profiles() -> Iterator[Profile]:
     for profile in syndicate_configs_from_config(tk.config):
         yield prepare_profile_dict(profile)
+
+
+def get_profile(id_: str) -> Optional[Profile]:
+    for profile in get_profiles():
+        if profile.id == id_:
+            return profile
 
 
 def try_sync(id_):
@@ -118,7 +126,7 @@ def profiles_for(pkg: ckan_model.Package):
     implementations = PluginImplementations(ISyndicate)
     skipper: ISyndicate = next(iter(implementations))
 
-    for profile in get_syndicate_profiles():
+    for profile in get_profiles():
         if skipper.skip_syndication(pkg, profile):
             log.debug(
                 "Plugin %s decided to skip syndication of %s for profile %s",
@@ -128,3 +136,8 @@ def profiles_for(pkg: ckan_model.Package):
             )
             continue
         yield profile
+
+
+def get_target(url, apikey):
+    ckan = ckanapi.RemoteCKAN(url, apikey=apikey)
+    return ckan

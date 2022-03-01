@@ -8,8 +8,8 @@ import ckan.plugins as plugins
 import ckan.plugins.toolkit as tk
 from ckan.model.domain_object import DomainObjectOperation
 
-import ckanext.syndicate.cli as cli
-import ckanext.syndicate.utils as utils
+from . import cli, utils
+from .logic import auth, action
 
 from .interfaces import ISyndicate
 from .types import Topic
@@ -22,10 +22,24 @@ def get_syndicate_flag():
 
 
 class SyndicatePlugin(plugins.SingletonPlugin):
+    plugins.implements(plugins.IActions)
+    plugins.implements(plugins.IAuthFunctions)
     plugins.implements(plugins.IDomainObjectModification, inherit=True)
     plugins.implements(plugins.IClick)
     plugins.implements(plugins.IConfigurable)
     plugins.implements(ISyndicate, inherit=True)
+    plugins.implements(plugins.IActions)
+    plugins.implements(plugins.IAuthFunctions)
+
+    # IActions
+
+    def get_actions(self):
+        return action.get_actions()
+
+    # IAuthFunctions
+
+    def get_auth_functions(self):
+        return auth.get_auth_functions()
 
     # IConfigurable
 
