@@ -24,3 +24,6 @@ def sync(not_missing, one_of, unicode_safe, package_id_or_name_exists):
         "topic": [not_missing, one_of(["create", "update"]), into_topic],
         "profile": [not_missing, unicode_safe, into_profile],
     }
+
+
+prepare = sync

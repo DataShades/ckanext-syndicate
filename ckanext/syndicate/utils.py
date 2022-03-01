@@ -39,6 +39,10 @@ def deprecated(msg):
 
 
 def syndicate_dataset(package_id: str, topic: Topic, profile: Profile):
+    """Enqueue syndication job.
+
+    If you need realtime syndication, use `syndicate_sync` action.
+    """
     import ckanext.syndicate.tasks as tasks
 
     tk.enqueue_job(

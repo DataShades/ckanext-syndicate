@@ -27,6 +27,7 @@ log = logging.getLogger(__name__)
 def get_actions():
     return {
         "syndicate_sync": sync,
+        "syndicate_prepare": prepare,
     }
 
 
@@ -34,12 +35,49 @@ def get_actions():
 def sync(context, data_dict):
     tk.check_access("syndicate_sync", context, data_dict)
 
-    params = {
-        "id": data_dict["id"],
-    }
+    details = tk.get_action("syndicate_prepare")(
+        context,
+        {
+            "id": data_dict["id"],
+            "topic": data_dict["topic"].name,
+            "profile": data_dict["profile"].id,
+        },
+    )
+    ckan = utils.get_target(
+        data_dict["profile"].ckan_url, data_dict["profile"].api_key
+    )
 
-    _notify_before(data_dict["id"], data_dict["profile"], params)
+    _notify_before(
+        data_dict["id"], data_dict["profile"], {"id": data_dict["id"]}
+    )
 
+    with reattaching_context(
+        details["package"]["id"],
+        details["prepared"],
+        data_dict["profile"],
+        ckan,
+    ):
+        if types.Topic[details["topic"]] is types.Topic.create:
+            result = ckan.action.package_create(**details["prepared"])
+            set_syndicated_id(
+                details["package"]["id"],
+                result["id"],
+                data_dict["profile"].field_id,
+            )
+
+        else:
+            result = ckan.action.package_update(**details["prepared"])
+
+    _notify_after(
+        data_dict["id"], data_dict["profile"], {"id": data_dict["id"]}
+    )
+
+    return data_dict
+
+
+@validate(schema.prepare)
+def prepare(context, data_dict):
+    tk.check_access("syndicate_prepare", context, data_dict)
     package: dict[str, Any] = tk.get_action("package_show")(
         {
             "user": context["user"],
@@ -47,7 +85,7 @@ def sync(context, data_dict):
             "use_cache": False,
             "validate": False,
         },
-        params,
+        {"id": data_dict["id"]},
     )
 
     ckan = utils.get_target(
@@ -61,28 +99,12 @@ def sync(context, data_dict):
     ):
         data_dict["topic"] = types.Topic.create
 
-    base, data_dict["topic"] = _compute_base_data_and_topic(
+    base, topic = _compute_base_data_and_topic(
         package, data_dict["topic"], data_dict["profile"], ckan
     )
     prepared = _prepare(package["id"], base, data_dict["profile"])
 
-    with reattaching_context(
-        package["id"], prepared, data_dict["profile"], ckan
-    ):
-        if data_dict["topic"] is types.Topic.create:
-            result = ckan.action.package_create(**prepared)
-            set_syndicated_id(
-                package["id"],
-                result["id"],
-                data_dict["profile"].field_id,
-            )
-
-        else:
-            result = ckan.action.package_update(**prepared)
-
-    _notify_after(data_dict["id"], data_dict["profile"], params)
-
-    return data_dict
+    return {"package": package, "prepared": prepared, "topic": topic.name}
 
 
 def _compute_base_data_and_topic(
@@ -256,6 +278,7 @@ def _prepare(
     local_id: str, package: dict[str, Any], profile: types.Profile
 ) -> dict[str, Any]:
     extras_dict = dict([(o["key"], o["value"]) for o in package["extras"]])
+
     extras_dict.pop(profile.field_id, None)
     package["extras"] = [
         {"key": k, "value": v} for (k, v) in extras_dict.items()
