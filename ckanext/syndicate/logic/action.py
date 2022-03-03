@@ -172,10 +172,13 @@ def _notify_after(
 
 
 def _compute_remote_name(package: dict[str, Any], profile: types.Profile):
-    name = "%s-%s" % (
-        profile.name_prefix,
-        package["name"],
-    )
+    name = package["name"]
+    if profile.name_prefix:
+        name = "%s-%s" % (
+            profile.name_prefix,
+            name,
+        )
+
     if len(name) > 100:
         uniq = str(uuid.uuid3(uuid.NAMESPACE_DNS, name))
         name = name[:92] + uniq[:8]
