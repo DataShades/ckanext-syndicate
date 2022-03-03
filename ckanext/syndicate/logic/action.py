@@ -72,7 +72,7 @@ def sync(context, data_dict):
         data_dict["id"], data_dict["profile"], {"id": data_dict["id"]}
     )
 
-    return data_dict
+    return {"id": data_dict["id"]}
 
 
 @validate(schema.prepare)
