@@ -73,6 +73,7 @@ def syndicate_configs_from_config(config) -> Iterable[Profile]:
     profile_lists = zip_longest(
         *[tk.aslist(config.get(prefix + key)) for key in keys]
     )
+
     for idx, item in enumerate(profile_lists):
         deprecated(
             f"Deprecated profile definition: {item}. Use"
