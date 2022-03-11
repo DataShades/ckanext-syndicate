@@ -108,7 +108,12 @@ def prepare(context, data_dict):
     org = base.pop("organization")
     if data_dict["profile"].replicate_organization:
         base["owner_org"] = tk.get_action("syndicate_sync_organization")(
-            context, {"id": org["id"], "profile": data_dict["profile"].id}
+            context,
+            {
+                "id": org["id"],
+                "profile": data_dict["profile"].id,
+                "skip_existing": True,
+            },
         )
     else:
         base["owner_org"] = data_dict["profile"].organization
@@ -128,7 +133,9 @@ def sync_group(context, data_dict):
     _group_or_org_sync(context, data_dict, False)
 
 
-def _group_or_org_sync(context, data_dict, is_org: bool):
+def _group_or_org_sync(
+    context: dict[str, Any], data_dict: dict[str, Any], is_org: bool
+):
     type_ = "organization" if is_org else "group"
     group = tk.get_action(type_ + "_show")(context, {"id": data_dict["id"]})
     profile: types.Profile = data_dict["profile"]
@@ -136,13 +143,14 @@ def _group_or_org_sync(context, data_dict, is_org: bool):
     ckan = utils.get_target(profile.ckan_url, profile.api_key)
     remote_group = None
 
+    show = getattr(ckan.action, type_ + "_show")
     try:
-        remote_group = ckan.action.organization_show(id=group["name"])
+        remote_group = show(id=group["name"])
     except ckanapi.NotFound:
         log.error(
-            "%s %s not found, creating new Organization.",
-            "Organization" if is_org else "Group",
+            "%s not found, creating new %s.",
             group["name"],
+            "Organization" if is_org else "Group",
         )
     except (ckanapi.NotAuthorized, ckanapi.CKANAPIError) as e:
         log.error("Replication error(trying to continue): {}".format(e))
@@ -150,22 +158,31 @@ def _group_or_org_sync(context, data_dict, is_org: bool):
         log.error("Replication error: {}".format(e))
         raise
 
+    if data_dict["skip_existing"] and remote_group:
+        return remote_group["id"]
+
+    local_id = group.pop("id")
     if not remote_group:
-        group.pop("id")
-        group.pop("image_url", None)
-        group.pop("num_followers", None)
-        group.pop("tags", None)
-        group.pop("users", None)
-        group.pop("groups", None)
+        action = getattr(ckan.action, type_ + "_create")
+    else:
+        group["id"] = remote_group["id"]
+        action = getattr(ckan.action, type_ + "_update")
 
-        default_img_url = (
-            "https://www.gravatar.com/avatar/123?s=400&d=identicon"
-        )
-        image_url = group.pop("image_display_url", default_img_url)
-        image_fd = requests.get(image_url, stream=True, timeout=2).raw
-        group.update(image_upload=image_fd)
+    group.pop("image_url", None)
+    group.pop("num_followers", None)
+    group.pop("tags", None)
+    group.pop("users", None)
+    group.pop("groups", None)
 
-        remote_group = ckan.action.organization_create(**group)
+    default_img_url = "https://www.gravatar.com/avatar/123?s=400&d=identicon"
+    image_url = group.pop("image_display_url", default_img_url)
+    image_fd = requests.get(image_url, stream=True, timeout=2).raw
+    group.update(image_upload=image_fd)
+
+    for plugin in plugins.PluginImplementations(ISyndicate):
+        group = plugin.prepare_group_for_syndication(local_id, group, profile)
+
+    remote_group = action(**group)
 
     return remote_group["id"]
 

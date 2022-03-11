@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Optional
 from werkzeug.utils import import_string
 
 import ckan.model as model
@@ -49,3 +49,13 @@ class ISyndicate(Interface):
 
         """
         return data_dict
+
+    def prepare_group_for_syndication(
+        self, group_id: str, group: dict[str, Any], profile: Profile
+    ) -> dict[str, Any]:
+        """Make modifications of the dict that will be sent to remote portal.
+
+        Remove all the sensitive fields, normalize group/organization type, etc.
+
+        """
+        return group

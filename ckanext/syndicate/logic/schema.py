@@ -30,10 +30,17 @@ prepare = sync
 
 
 @validator_args
-def sync_organization(not_missing, unicode_safe, group_id_or_name_exists):
+def sync_organization(
+    not_missing,
+    unicode_safe,
+    group_id_or_name_exists,
+    default,
+    boolean_validator,
+):
     return {
         "id": [not_missing, group_id_or_name_exists],
         "profile": [not_missing, unicode_safe, into_profile],
+        "skip_existing": [default(False), boolean_validator],
     }
 
 
