@@ -82,3 +82,27 @@ class TestSyndicateFlag:
     ):
         plugin.notify(dataset, DomainObjectOperation.new)
         assert not (syndicate.called)
+
+
+@pytest.mark.usefixtures("clean_db", "with_plugins")
+class TestPrepareFromPlugin:
+    @pytest.mark.ckan_config("ckan.plugins", "test_syndicate syndicate")
+    def test_pepare_called_if_first(self, plugin, dataset, mocker, syndicate):
+        impl = p.get_plugin("test_syndicate")
+        spy = mocker.spy(impl, "skip_syndication")
+        plugin.notify(dataset, DomainObjectOperation.changed)
+        spy.assert_called_once()
+        syndicate.assert_called_once()
+
+    @pytest.mark.ckan_config("ckan.plugins", "test_syndicate syndicate")
+    @pytest.mark.ckan_config("ckanext.test_syndicate.skip_syndication", True)
+    def test_pepare_from_plugin_has_effect(self, plugin, dataset, syndicate):
+        plugin.notify(dataset, DomainObjectOperation.changed)
+        syndicate.assert_not_called()
+
+    @pytest.mark.ckan_config("ckan.plugins", "syndicate test_syndicate")
+    def test_pepare_not_called_if_second(self, plugin, dataset, mocker):
+        impl = p.get_plugin("test_syndicate")
+        spy = mocker.spy(impl, "skip_syndication")
+        plugin.notify(dataset, DomainObjectOperation.changed)
+        spy.assert_not_called()

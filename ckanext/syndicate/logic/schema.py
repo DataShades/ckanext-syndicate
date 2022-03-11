@@ -27,3 +27,14 @@ def sync(not_missing, one_of, unicode_safe, package_id_or_name_exists):
 
 
 prepare = sync
+
+
+@validator_args
+def sync_organization(not_missing, unicode_safe, group_id_or_name_exists):
+    return {
+        "id": [not_missing, group_id_or_name_exists],
+        "profile": [not_missing, unicode_safe, into_profile],
+    }
+
+
+sync_group = sync_organization

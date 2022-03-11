@@ -21,6 +21,30 @@ def remote_org(organization_factory, user, monkeypatch, ckan_config):
 
 @pytest.mark.usefixtures("clean_db", "ckan")
 @pytest.mark.ckan_config("ckanext.syndicate.profile.test.name_prefix", "test")
+class TestPrepare(object):
+    def test_prepare_default(self, package, remote_org):
+        prepared = call_action(
+            "syndicate_prepare",
+            id=package["id"],
+            topic="create",
+            profile=next(get_profiles()).id,
+        )
+        assert prepared["topic"] == "create"
+        assert prepared["package"] == package
+
+        expected = {
+            **package,
+            "owner_org": remote_org["name"],
+            "name": "test-" + package["name"],
+        }
+        expected.pop("id")
+        expected.pop("organization")
+
+        assert prepared["prepared"] == expected
+
+
+@pytest.mark.usefixtures("clean_db", "ckan")
+@pytest.mark.ckan_config("ckanext.syndicate.profile.test.name_prefix", "test")
 class TestSync(object):
     def test_create_package(
         self, create_with_upload, package_factory, remote_org
