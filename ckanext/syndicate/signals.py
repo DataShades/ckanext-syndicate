@@ -7,5 +7,8 @@ except AttributeError:
 
     ckanext = Namespace()
 
-before_syndication = ckanext.signal(u"syndicate:before_syndication")
-after_syndication = ckanext.signal(u"syndicate:after_syndication")
+before_syndication = ckanext.signal("syndicate:before_syndication")
+after_syndication = ckanext.signal("syndicate:after_syndication")
+
+before_group_syndication = ckanext.signal("syndicate:before_group_syndication")
+after_group_syndication = ckanext.signal("syndicate:after_group_syndication")

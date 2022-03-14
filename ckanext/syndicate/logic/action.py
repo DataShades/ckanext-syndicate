@@ -49,16 +49,14 @@ def sync(context, data_dict):
         data_dict["profile"].ckan_url, data_dict["profile"].api_key
     )
 
-    _notify_before(
-        data_dict["id"], data_dict["profile"], {"id": data_dict["id"]}
-    )
+    _notify_before(data_dict["id"], data_dict["profile"], details)
 
     with reattaching_context(
         details["package"]["id"],
         details["prepared"],
         data_dict["profile"],
         ckan,
-    ):
+    ) as result:
         if types.Topic[details["topic"]] is types.Topic.create:
             result = ckan.action.package_create(**details["prepared"])
             set_syndicated_id(
@@ -70,9 +68,7 @@ def sync(context, data_dict):
         else:
             result = ckan.action.package_update(**details["prepared"])
 
-    _notify_after(
-        data_dict["id"], data_dict["profile"], {"id": data_dict["id"]}
-    )
+    _notify_after(data_dict["id"], data_dict["profile"], result)
 
     return {"id": data_dict["id"]}
 
@@ -170,9 +166,12 @@ def _group_or_org_sync(
 
     group.pop("image_url", None)
     group.pop("num_followers", None)
+    group.pop("display_name", None)
+    group.pop("package_count", None)
     group.pop("tags", None)
     group.pop("users", None)
     group.pop("groups", None)
+    group.pop("extras", None)
 
     default_img_url = "https://www.gravatar.com/avatar/123?s=400&d=identicon"
     image_url = group.pop("image_display_url", default_img_url)
@@ -182,7 +181,13 @@ def _group_or_org_sync(
     for plugin in plugins.PluginImplementations(ISyndicate):
         group = plugin.prepare_group_for_syndication(local_id, group, profile)
 
+    signals.before_group_syndication.send(
+        local_id, profile=profile, details=group
+    )
     remote_group = action(**group)
+    signals.after_group_syndication.send(
+        local_id, profile=profile, remote=remote_group
+    )
 
     return remote_group["id"]
 
@@ -223,11 +228,11 @@ def _compute_base_data_and_topic(
 
 
 def _notify_before(
-    package_id: str, profile: types.Profile, params: dict[str, Any]
+    package_id: str, profile: types.Profile, details: dict[str, Any]
 ):
     try:
         tk.get_action("before_syndication_action")(
-            {"profile": profile}, params
+            {"profile": profile}, details
         )
     except KeyError:
         pass
@@ -236,14 +241,16 @@ def _notify_before(
             "before_syndication_action is deprecated in v2.0.0. Use"
             " before_syndication signal instead"
         )
-    signals.before_syndication.send(package_id, profile=profile, params=params)
+    signals.before_syndication.send(
+        package_id, profile=profile, details=details
+    )
 
 
 def _notify_after(
-    package_id: str, profile: types.Profile, params: dict[str, Any]
+    package_id: str, profile: types.Profile, remote: dict[str, Any]
 ):
     try:
-        tk.get_action("after_syndication_action")({"profile": profile}, params)
+        tk.get_action("after_syndication_action")({"profile": profile}, remote)
     except KeyError:
         pass
     else:
@@ -251,7 +258,7 @@ def _notify_after(
             "after_syndication_action is deprecated in v2.0.0. Use"
             " after_syndication signal instead"
         )
-    signals.after_syndication.send(package_id, profile=profile, params=params)
+    signals.after_syndication.send(package_id, profile=profile, remote=remote)
 
 
 def _compute_remote_name(package: dict[str, Any], profile: types.Profile):
@@ -275,8 +282,15 @@ def reattaching_context(
     profile: types.Profile,
     ckan: ckanapi.RemoteCKAN,
 ):
+    """Yields empty result that will be overriden by the code of `with`-block.
+
+    If with-block raises non-unique-url error, make an attempt to attach local
+    dataset to the remote one. In case of success, update yielded empty result.
+
+    """
+    result = {}
     try:
-        yield
+        yield result
     except ckanapi.ValidationError as e:
         if "That URL is already in use." not in e.error_dict.get("name", []):
             raise
@@ -325,7 +339,9 @@ def reattaching_context(
 
     log.info("Author is the same({0}). Continue syndication".format(author))
 
-    ckan.action.package_update(id=remote_package["id"], **package)
+    result.update(
+        ckan.action.package_update(id=remote_package["id"], **package)
+    )
     set_syndicated_id(
         local_id,
         remote_package["id"],

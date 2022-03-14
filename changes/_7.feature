@@ -1,0 +1,1 @@
+Group syndication signals
