@@ -102,6 +102,7 @@ def prepare(context, data_dict):
     )
 
     org = base.pop("organization")
+
     if data_dict["profile"].replicate_organization:
         base["owner_org"] = tk.get_action("syndicate_sync_organization")(
             context,
@@ -121,12 +122,12 @@ def prepare(context, data_dict):
 
 @validate(schema.sync_organization)
 def sync_organization(context, data_dict):
-    _group_or_org_sync(context, data_dict, True)
+    return _group_or_org_sync(context, data_dict, True)
 
 
 @validate(schema.sync_group)
 def sync_group(context, data_dict):
-    _group_or_org_sync(context, data_dict, False)
+    return _group_or_org_sync(context, data_dict, False)
 
 
 def _group_or_org_sync(
