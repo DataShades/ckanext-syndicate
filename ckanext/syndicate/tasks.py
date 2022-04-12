@@ -16,7 +16,6 @@ def sync_package(package_id: str, action: Topic, profile: Profile):
         action.name,
         profile.id,
     )
-
     user = tk.get_action("get_site_user")({"ignore_auth": True}, {})
     tk.get_action("syndicate_sync")(
         {"user": user["name"]},

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import warnings
 
 import ckan.model as model
 import ckan.plugins as plugins
@@ -16,6 +15,9 @@ from .types import Topic
 
 log = logging.getLogger(__name__)
 
+CONFIG_SYNC_ON_CHANGES = "ckanext.syndicate.sync_on_changes"
+DEFAULT_SYNC_ON_CHANGES = True
+
 
 def get_syndicate_flag():
     return tk.config.get("ckan.syndicate.flag", "syndicate")
@@ -26,7 +28,6 @@ class SyndicatePlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IAuthFunctions)
     plugins.implements(plugins.IDomainObjectModification, inherit=True)
     plugins.implements(plugins.IClick)
-    plugins.implements(plugins.IConfigurable)
     plugins.implements(ISyndicate, inherit=True)
     plugins.implements(plugins.IActions)
     plugins.implements(plugins.IAuthFunctions)
@@ -41,14 +42,6 @@ class SyndicatePlugin(plugins.SingletonPlugin):
     def get_auth_functions(self):
         return auth.get_auth_functions()
 
-    # IConfigurable
-
-    def configure(self, config):
-        if tk.asbool(config.get("debug")):
-            warnings.filterwarnings(
-                "default", category=utils.SyndicationDeprecationWarning
-            )
-
     # IClick
 
     def get_commands(self):
@@ -57,6 +50,11 @@ class SyndicatePlugin(plugins.SingletonPlugin):
     # Based on ckanext-webhooks plugin
     # IDomainObjectNotification & IResourceURLChange
     def notify(self, entity, operation=None):
+        if not tk.asbool(
+            tk.config.get(CONFIG_SYNC_ON_CHANGES, DEFAULT_SYNC_ON_CHANGES)
+        ):
+            return
+
         if not operation:
             # This happens on IResourceURLChange
             return

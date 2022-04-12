@@ -108,6 +108,12 @@ to replace `PROFILE_ID` with any identifier you like.
    # (optional, default: None)
    ckanext.syndicate.profile.PROFILE_ID.author = some_user_name
 
+In addition, the following config options control behavior of syndication process in general::
+
+   # Try to syndicate the dataset every time it's changed/deleted/created. If
+   # syndication must be triggered manually, disable this option
+   # (optional, default: true)
+   ckanext.syndicate.sync_on_changes = false
 
 Extending
 =========
