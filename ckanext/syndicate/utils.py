@@ -119,6 +119,11 @@ def get_profile(id_: str) -> Optional[Profile]:
 
 
 def try_sync(id_):
+    deprecated("Use notify_sync or trigger_sync")
+    notify_sync(id_)
+
+
+def notify_sync(id_):
     plugin = get_plugin("syndicate")
 
     pkg = ckan_model.Package.get(id_)
@@ -146,3 +151,10 @@ def profiles_for(pkg: ckan_model.Package):
 def get_target(url, apikey):
     ckan = ckanapi.RemoteCKAN(url, apikey=apikey)
     return ckan
+
+
+def trigger_sync(id: str):
+    package = ckan_model.Package.get(id)
+    for profile in profiles_for(package):
+        log.debug("Syndicate <{}> to {}".format(package.id, profile.ckan_url))
+        syndicate_dataset(package.id, Topic.update, profile)
