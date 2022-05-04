@@ -13,6 +13,7 @@ import ckanapi
 import ckan.model as ckan_model
 import ckan.plugins.toolkit as tk
 from ckan.plugins import get_plugin, PluginImplementations
+from ckan.lib.jobs import DEFAULT_QUEUE_NAME
 
 from .types import Profile, Topic
 from .interfaces import ISyndicate
@@ -29,6 +30,7 @@ class SyndicationDeprecationWarning(CkanDeprecationWarning):
     pass
 
 
+CONFIG_QUEUE_NAME = "ckanext.syndicate.queue.name"
 PROFILE_PREFIX = "ckanext.syndicate.profile."
 log = logging.getLogger(__name__)
 
@@ -48,6 +50,7 @@ def syndicate_dataset(package_id: str, topic: Topic, profile: Profile):
     tk.enqueue_job(
         tasks.sync_package,
         [package_id, topic, profile],
+        queue=tk.config.get(CONFIG_QUEUE_NAME, DEFAULT_QUEUE_NAME),
     )
 
 

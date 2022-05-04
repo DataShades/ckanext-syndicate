@@ -115,6 +115,11 @@ In addition, the following config options control behavior of syndication proces
    # (optional, default: true)
    ckanext.syndicate.sync_on_changes = false
 
+   # Name of the backgound jobs queue used by syndication.
+   # (optional, default: default)
+   ckanext.syndicate.queue.name = default
+
+
 Extending
 =========
 
