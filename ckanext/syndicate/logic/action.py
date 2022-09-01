@@ -166,7 +166,6 @@ def _group_or_org_sync(
         action = getattr(ckan.action, type_ + "_update")
 
     group.pop("is_organization", None)
-    group.pop("image_url", None)
     group.pop("num_followers", None)
     group.pop("display_name", None)
     group.pop("package_count", None)
@@ -175,10 +174,12 @@ def _group_or_org_sync(
     group.pop("groups", None)
     group.pop("extras", None)
 
-    default_img_url = "https://www.gravatar.com/avatar/123?s=400&d=identicon"
-    image_url = group.pop("image_display_url") or default_img_url
-    image_fd = requests.get(image_url, stream=True, timeout=2).raw
-    group.update(image_upload=image_fd)
+    if profile.upload_organization_image:
+        group.pop("image_url", None)
+        default_img_url = "https://www.gravatar.com/avatar/123?s=400&d=identicon"
+        image_url = group.pop("image_display_url") or default_img_url
+        image_fd = requests.get(image_url, stream=True, timeout=2).raw
+        group.update(image_upload=image_fd)
 
     for plugin in plugins.PluginImplementations(ISyndicate):
         group = plugin.prepare_group_for_syndication(local_id, group, profile)

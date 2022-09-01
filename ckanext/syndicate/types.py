@@ -28,8 +28,12 @@ class Profile:
     predicate: str = ""
     extras: dict[str, Any] = dataclasses.field(default_factory=dict)
 
+    upload_organization_image: bool = True
+
     def __post_init__(self):
-        if not isinstance(self.replicate_organization, bool):
-            self.replicate_organization = tk.asbool(
-                self.replicate_organization
-            )
+        flags = ["replicate_organization", "upload_organization_image"]
+
+        for flag in flags:
+            value = getattr(self, flag)
+            if not isinstance(value, bool):
+                setattr(self, flag, tk.asbool(value))
