@@ -294,8 +294,11 @@ def reattaching_context(
     result = {}
     try:
         yield result
-    except ckanapi.ValidationError as e:
-        if "That URL is already in use." not in e.error_dict.get("name", []):
+    except Exception as e:
+        for plugin in plugins.PluginImplementations(ISyndicate):
+            if plugin.syndicate_reattach_on_error(e):
+                break
+        else:
             raise
     else:
         return
