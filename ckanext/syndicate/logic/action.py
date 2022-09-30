@@ -176,7 +176,9 @@ def _group_or_org_sync(
 
     if profile.upload_organization_image:
         group.pop("image_url", None)
-        default_img_url = "https://www.gravatar.com/avatar/123?s=400&d=identicon"
+        default_img_url = (
+            "https://www.gravatar.com/avatar/123?s=400&d=identicon"
+        )
         image_url = group.pop("image_display_url") or default_img_url
         image_fd = requests.get(image_url, stream=True, timeout=2).raw
         group.update(image_upload=image_fd)

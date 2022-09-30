@@ -85,4 +85,6 @@ class ISyndicate(Interface):
         if not isinstance(error, ckanapi.ValidationError):
             return False
 
-        return  "That URL is already in use." in error.error_dict.get("name", [])
+        return "That URL is already in use." in error.error_dict.get(
+            "name", []
+        )
