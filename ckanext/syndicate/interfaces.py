@@ -61,7 +61,7 @@ class ISyndicate(Interface):
         """
         return group
 
-    def syndicate_reattach_on_error(self, error: Exception) -> bool:
+    def reattach_on_syndication_error(self, error: Exception) -> bool:
         """Decide if the remote package should be re-attached during syndication.
 
         This method called when syndication makes an attempt to create a

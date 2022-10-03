@@ -298,7 +298,7 @@ def reattaching_context(
         yield result
     except Exception as e:
         for plugin in plugins.PluginImplementations(ISyndicate):
-            if plugin.syndicate_reattach_on_error(e):
+            if plugin.reattach_on_syndication_error(e):
                 break
         else:
             raise
