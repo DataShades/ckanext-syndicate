@@ -70,6 +70,7 @@ def syndicate_configs_from_config(config) -> Iterable[Profile]:
         "predicate",
         "name_prefix",
         "replicate_organization",
+        "update_organization",
         "ckan_url",
     )
 

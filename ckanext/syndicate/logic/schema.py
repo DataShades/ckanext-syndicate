@@ -40,7 +40,7 @@ def sync_organization(
     return {
         "id": [not_missing, group_id_or_name_exists],
         "profile": [not_missing, unicode_safe, into_profile],
-        "skip_existing": [default(False), boolean_validator],
+        "update_existing": [default(False), boolean_validator],
     }
 
 

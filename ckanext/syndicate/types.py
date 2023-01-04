@@ -23,6 +23,7 @@ class Profile:
     field_id: str = "syndicated_id"
     name_prefix: str = ""
     replicate_organization: bool = False
+    update_organization: bool = False
     author: str = ""
 
     predicate: str = ""
@@ -31,7 +32,11 @@ class Profile:
     upload_organization_image: bool = True
 
     def __post_init__(self):
-        flags = ["replicate_organization", "upload_organization_image"]
+        flags = [
+            "replicate_organization",
+            "update_organization",
+            "upload_organization_image"
+        ]
 
         for flag in flags:
             value = getattr(self, flag)

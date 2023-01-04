@@ -180,6 +180,112 @@ class TestSync(object):
 
         assert mock_org_create.called
 
+    @pytest.mark.ckan_config("ckan.syndicate.update_organization", "true")
+    def test_organization_update_true(
+        self, ckan, user, organization_factory, package_factory, mocker
+    ):
+        """If ckan.syndicate.update_organization set to true, we're updating
+        organization"""
+        local_org = organization_factory(
+            users=[{"capacity": "editor", "name": user["id"]}]
+        )
+        dataset = package_factory(
+            owner_org=local_org["id"],
+            extras=[{"key": "syndicate", "value": "true"}],
+        )
+
+        mock_org_create = mocker.Mock()
+        mock_org_show = mocker.Mock()
+        mock_org_update = mocker.Mock()
+
+        mock_org_show.side_effect = ckanapi.NotFound
+        mock_org_create.return_value = local_org
+        mock_org_update.return_value = local_org
+
+        ckan.action.organization_create = mock_org_create
+        ckan.action.organization_show = mock_org_show
+        ckan.action.organization_update = mock_org_update
+
+        profile = next(get_profiles())
+
+        call_action(
+            "syndicate_sync",
+            id=dataset["id"],
+            topic="create",
+            profile=profile.id,
+        )
+        mock_org_show.assert_called_once_with(id=local_org["name"])
+
+        assert mock_org_create.called
+        assert not mock_org_update.called
+
+        mock_org_show = mocker.Mock()
+        mock_org_show.return_value = local_org
+        ckan.action.organization_show = mock_org_show
+
+        call_action(
+            "syndicate_sync_organization",
+            id=local_org["id"],
+            profile=profile.id,
+            update_existing=profile.update_organization,
+        )
+
+        assert mock_org_update.called
+
+    @pytest.mark.ckan_config("ckan.syndicate.replicate_organization", "true")
+    @pytest.mark.ckan_config("ckan.syndicate.update_organization", "false")
+    def test_organization_update_false(
+        self, ckan, user, organization_factory, package_factory, mocker
+    ):
+        """If ckan.syndicate.update_organization set to false, we're not updating
+        organization"""
+        local_org = organization_factory(
+            users=[{"capacity": "editor", "name": user["id"]}]
+        )
+        dataset = package_factory(
+            owner_org=local_org["id"],
+            extras=[{"key": "syndicate", "value": "true"}],
+        )
+
+        mock_org_create = mocker.Mock()
+        mock_org_show = mocker.Mock()
+        mock_org_update = mocker.Mock()
+
+        mock_org_show.side_effect = ckanapi.NotFound
+        mock_org_create.return_value = local_org
+        mock_org_update.return_value = local_org
+
+        ckan.action.organization_create = mock_org_create
+        ckan.action.organization_show = mock_org_show
+        ckan.action.organization_update = mock_org_update
+
+        profile = next(get_profiles())
+
+        call_action(
+            "syndicate_sync",
+            id=dataset["id"],
+            topic="create",
+            profile=profile.id,
+        )
+
+        mock_org_show.assert_called_once_with(id=local_org["name"])
+
+        assert mock_org_create.called
+        assert not mock_org_update.called
+
+        mock_org_show = mocker.Mock()
+        mock_org_show.return_value = local_org
+        ckan.action.organization_show = mock_org_show
+
+        call_action(
+            "syndicate_sync_organization",
+            id=local_org["id"],
+            profile=profile.id,
+            update_existing=profile.update_organization,
+        )
+
+        assert not mock_org_update.called
+
     @pytest.mark.ckan_config("ckan.syndicate.name_prefix", "test")
     def test_author_check(
         self, user, ckan, monkeypatch, ckan_config, package_factory, mocker
