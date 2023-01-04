@@ -100,7 +100,11 @@ to replace `PROFILE_ID` with any identifier you like.
 
    # Try to preserve dataset's organization
    # (optional, default: false)
-   ckanext.syndicate.profile.PROFILE_ID.replicate_organization = yes
+   ckanext.syndicate.profile.PROFILE_ID.replicate_organization = true
+
+   # Update organization metadata (doesn't update extras) if exists
+   # (optional, default: false)
+   ckanext.syndicate.profile.odp.update_organization = true
 
    # The username whose api_key is used.
    # If the dataset already exists on the target CKAN instance, the dataset will be updated

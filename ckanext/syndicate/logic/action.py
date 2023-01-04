@@ -103,13 +103,16 @@ def prepare(context, data_dict):
 
     org = base.pop("organization")
 
-    if data_dict["profile"].replicate_organization:
+    if (
+        data_dict["profile"].replicate_organization
+        or data_dict["profile"].update_organization
+    ):
         base["owner_org"] = tk.get_action("syndicate_sync_organization")(
             context,
             {
                 "id": org["id"],
                 "profile": data_dict["profile"].id,
-                "skip_existing": True,
+                "update_existing": data_dict["profile"].update_organization,
             },
         )
     else:
@@ -155,7 +158,7 @@ def _group_or_org_sync(
         log.error("Replication error: {}".format(e))
         raise
 
-    if data_dict["skip_existing"] and remote_group:
+    if not data_dict["update_existing"] and remote_group:
         return remote_group["id"]
 
     local_id = group.pop("id")
