@@ -30,7 +30,7 @@ Requirements
 ============
 
 * Tested with CKAN 2.9.x branch on python v3.7+
-* To work over SSL, requires `pyOpenSSL` (`pip install -r requirements.txt`)
+* To work over SSL, requires `pyOpenSSL` 
 
 Installation
 ============
