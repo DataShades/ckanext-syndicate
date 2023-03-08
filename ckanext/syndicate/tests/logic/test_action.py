@@ -43,7 +43,7 @@ class TestPrepare(object):
         assert prepared["prepared"] == expected
 
 
-@pytest.mark.usefixtures("clean_db", "ckan")
+@pytest.mark.usefixtures("clean_db", "ckan", "with_request_context")
 @pytest.mark.ckan_config("ckanext.syndicate.profile.test.name_prefix", "test")
 class TestSync(object):
     def test_create_package(

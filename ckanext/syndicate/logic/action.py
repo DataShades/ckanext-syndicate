@@ -381,7 +381,7 @@ def set_syndicated_id(local_id: str, remote_id: str, field: str):
         model.Session.commit()
         model.Session.flush()
     else:
-        model.Session.query(model.PackageExtra).filter_by(id=ext_id).update(
+        model.Session.query(model.PackageExtra).filter_by(id=ext_id.id).update(
             {"value": remote_id, "state": "active"}
         )
     rebuild(local_id)
