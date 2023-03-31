@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.2.0](https://github.com/DataShades/ckanext-syndicate/compare/v2.1.1...v2.2.0) (2023-03-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* existing group and organization are skipped by default(skip_existing->update_existing)
+
+### Features
+
+* existing group and organization are skipped by default(skip_existing->update_existing) ([d022e33](https://github.com/DataShades/ckanext-syndicate/commit/d022e33f65ec2319fb9571d8201b9e37fac1bded))
+
 ### [2.1.1](https://github.com/DataShades/ckanext-syndicate/compare/v2.1.0...v2.1.1) (2023-03-08)
 
 
