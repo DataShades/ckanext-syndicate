@@ -24,6 +24,7 @@ class Profile:
     name_prefix: str = ""
     replicate_organization: bool = False
     update_organization: bool = False
+    refresh_package_name: bool = False
     author: str = ""
 
     predicate: str = ""

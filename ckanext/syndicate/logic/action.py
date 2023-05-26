@@ -230,7 +230,8 @@ def _compute_base_data_and_topic(
 
         # Keep the existing remote ID and Name
         base["id"] = remote_package["id"]
-        base["name"] = remote_package["name"]
+        if not profile.refresh_package_name:
+            base["name"] = remote_package["name"]
 
     return base, topic
 
