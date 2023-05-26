@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.2.1](https://github.com/DataShades/ckanext-syndicate/compare/v2.2.0...v2.2.1) (2023-05-26)
+
+
+### Features
+
+* prifile.refresh_package_name flag allows updating remote name ([db85496](https://github.com/DataShades/ckanext-syndicate/commit/db85496b90fa102ec6a750cc93fb07c6c0ccf0a4))
+
 ## [2.2.0](https://github.com/DataShades/ckanext-syndicate/compare/v2.1.1...v2.2.0) (2023-03-31)
 
 
