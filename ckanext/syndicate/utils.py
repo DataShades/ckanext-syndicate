@@ -12,6 +12,7 @@ import ckanapi
 
 import ckan.model as ckan_model
 import ckan.plugins.toolkit as tk
+from ckan.lib import maintain
 from ckan.plugins import get_plugin, PluginImplementations
 from ckan.lib.jobs import DEFAULT_QUEUE_NAME
 
@@ -152,7 +153,11 @@ def profiles_for(pkg: ckan_model.Package):
         yield profile
 
 
-def get_target(url, apikey):
+
+@maintain.deprecated("Use Profile.get_target() instead", since="2.2.2")
+def get_target(url: str, apikey: str | None):
+    """DEPRECATED. Get target CKAN instance.
+    """
     ckan = ckanapi.RemoteCKAN(url, apikey=apikey)
     return ckan
 

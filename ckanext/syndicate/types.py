@@ -5,6 +5,7 @@ import dataclasses
 from typing import Any
 
 import ckan.plugins.toolkit as tk
+import ckanapi
 
 
 class Topic(enum.Enum):
@@ -27,6 +28,7 @@ class Profile:
     refresh_package_name: bool = False
     author: str = ""
 
+    user_agent: str | None = None
     predicate: str = ""
     extras: dict[str, Any] = dataclasses.field(default_factory=dict)
 
@@ -43,3 +45,9 @@ class Profile:
             value = getattr(self, flag)
             if not isinstance(value, bool):
                 setattr(self, flag, tk.asbool(value))
+
+    def get_target(self):
+        ckan = ckanapi.RemoteCKAN(self.ckan_url, apikey=self.api_key)
+        if self.user_agent is not None:
+            ckan.user_agent = self.user_agent
+        return ckan

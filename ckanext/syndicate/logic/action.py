@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+from typing_extensions import TypedDict
 import uuid
 from typing import Any, Optional
 
@@ -23,6 +24,11 @@ from ..interfaces import ISyndicate
 
 log = logging.getLogger(__name__)
 
+class SyncData(TypedDict):
+    id: str
+    topic: types.Topic
+    profile: types.Profile
+
 
 def get_actions():
     return {
@@ -34,7 +40,7 @@ def get_actions():
 
 
 @validate(schema.sync)
-def sync(context, data_dict):
+def sync(context, data_dict: SyncData):
     tk.check_access("syndicate_sync", context, data_dict)
 
     details = tk.get_action("syndicate_prepare")(
@@ -45,9 +51,7 @@ def sync(context, data_dict):
             "profile": data_dict["profile"].id,
         },
     )
-    ckan = utils.get_target(
-        data_dict["profile"].ckan_url, data_dict["profile"].api_key
-    )
+    ckan = data_dict["profile"].get_target()
 
     _notify_before(data_dict["id"], data_dict["profile"], details)
 
@@ -74,7 +78,7 @@ def sync(context, data_dict):
 
 
 @validate(schema.prepare)
-def prepare(context, data_dict):
+def prepare(context, data_dict: SyncData):
     tk.check_access("syndicate_prepare", context, data_dict)
     package: dict[str, Any] = tk.get_action("package_show")(
         {
@@ -86,9 +90,7 @@ def prepare(context, data_dict):
         {"id": data_dict["id"]},
     )
 
-    ckan = utils.get_target(
-        data_dict["profile"].ckan_url, data_dict["profile"].api_key
-    )
+    ckan = data_dict["profile"].get_target()
 
     if data_dict[
         "topic"
@@ -140,7 +142,7 @@ def _group_or_org_sync(
     group = tk.get_action(type_ + "_show")(context, {"id": data_dict["id"]})
     profile: types.Profile = data_dict["profile"]
 
-    ckan = utils.get_target(profile.ckan_url, profile.api_key)
+    ckan = profile.get_target()
     remote_group = None
 
     show = getattr(ckan.action, type_ + "_show")
