@@ -4,13 +4,14 @@ from pytest_factoryboy import register
 
 from ckan.tests import factories
 
-from ckanext.syndicate import utils
+from ckanext.syndicate import types
 
 
 @pytest.fixture
-def ckan(user, app, monkeypatch):
-    ckan = ckanapi.TestAppCKAN(app, user["apikey"])
-    monkeypatch.setattr(utils, "get_target", lambda *args: ckan)
+def ckan(user, api_token_factory, app, monkeypatch):
+    token = api_token_factory(user=user["name"])
+    ckan = ckanapi.TestAppCKAN(app, token["token"])
+    monkeypatch.setattr(types.Profile, "get_target", lambda *args: ckan)
     yield ckan
 
 

@@ -18,10 +18,6 @@ CONFIG_SYNC_ON_CHANGES = "ckanext.syndicate.sync_on_changes"
 DEFAULT_SYNC_ON_CHANGES = True
 
 
-def get_syndicate_flag():
-    return tk.config.get("ckan.syndicate.flag", "syndicate")
-
-
 class SyndicatePlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IActions)
     plugins.implements(plugins.IAuthFunctions)

@@ -140,7 +140,9 @@ class TestSync(object):
         syndicated = call_action("package_show", id=syndicated_id)
         assert syndicated["notes"] == updated["notes"]
 
-    @pytest.mark.ckan_config("ckan.syndicate.replicate_organization", "yes")
+    @pytest.mark.ckan_config(
+        "ckanext.syndicate.profile.test.replicate_organization", "yes"
+    )
     def test_organization_replication(
         self, ckan, user, organization_factory, package_factory, mocker
     ):
@@ -173,12 +175,16 @@ class TestSync(object):
 
         assert mock_org_create.called
 
-    @pytest.mark.ckan_config("ckan.syndicate.update_organization", "true")
+    @pytest.mark.ckan_config(
+        "ckanext.syndicate.profile.test.update_organization", "true"
+    )
     def test_organization_update_true(
         self, ckan, user, organization_factory, package_factory, mocker
     ):
-        """If ckan.syndicate.update_organization set to true, we're updating
-        organization"""
+        """If ckanext.syndicate.profile.test.update_organization set to true,
+        we're updating organization
+
+        """
         local_org = organization_factory(
             users=[{"capacity": "editor", "name": user["id"]}]
         )
@@ -225,13 +231,19 @@ class TestSync(object):
 
         assert mock_org_update.called
 
-    @pytest.mark.ckan_config("ckan.syndicate.replicate_organization", "true")
-    @pytest.mark.ckan_config("ckan.syndicate.update_organization", "false")
+    @pytest.mark.ckan_config(
+        "ckanext.syndicate.profile.test.replicate_organization", "true"
+    )
+    @pytest.mark.ckan_config(
+        "ckanext.syndicate.profile.test.update_organization", "false"
+    )
     def test_organization_update_false(
         self, ckan, user, organization_factory, package_factory, mocker
     ):
-        """If ckan.syndicate.update_organization set to false, we're not updating
-        organization"""
+        """If ckanext.syndicate.profile.test.update_organization set to false,
+        we're not updating organization
+
+        """
         local_org = organization_factory(
             users=[{"capacity": "editor", "name": user["id"]}]
         )
@@ -279,11 +291,13 @@ class TestSync(object):
 
         assert not mock_org_update.called
 
-    @pytest.mark.ckan_config("ckan.syndicate.name_prefix", "test")
+    @pytest.mark.ckan_config("ckanext.syndicate.profile.test.name_prefix", "test")
     def test_author_check(
         self, user, ckan, monkeypatch, ckan_config, package_factory, mocker
     ):
-        monkeypatch.setitem(ckan_config, "ckan.syndicate.author", user["name"])
+        monkeypatch.setitem(
+            ckan_config, "ckanext.syndicate.profile.test.author", user["name"]
+        )
 
         dataset = package_factory(extras=[{"key": "syndicate", "value": "true"}])
 

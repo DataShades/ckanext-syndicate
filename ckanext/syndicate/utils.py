@@ -6,28 +6,25 @@ import logging
 import warnings
 from collections import defaultdict
 from itertools import zip_longest
-from typing import Iterable, Iterator, Optional, Type
+from typing import Iterable, Iterator, Optional
 
 import ckanapi
 
 import ckan.model as ckan_model
 import ckan.plugins.toolkit as tk
-from ckan.lib import maintain
 from ckan.lib.jobs import DEFAULT_QUEUE_NAME
 from ckan.plugins import PluginImplementations, get_plugin
 
 from .interfaces import ISyndicate
 from .types import Profile, Topic
 
-CkanDeprecationWarning: Type
-
 try:
-    from ckan.exceptions import CkanDeprecationWarning  # type: ignore
+    from ckan.exceptions import CkanDeprecationWarning
 except ImportError:
     CkanDeprecationWarning = DeprecationWarning
 
 
-class SyndicationDeprecationWarning(CkanDeprecationWarning):
+class SyndicationDeprecationWarning(CkanDeprecationWarning):  # type: ignore
     pass
 
 
@@ -36,7 +33,7 @@ PROFILE_PREFIX = "ckanext.syndicate.profile."
 log = logging.getLogger(__name__)
 
 
-def deprecated(msg):
+def deprecated(msg: str):
     log.warning(msg)
     warnings.warn(msg, category=SyndicationDeprecationWarning, stacklevel=3)
 
@@ -151,9 +148,12 @@ def profiles_for(pkg: ckan_model.Package):
         yield profile
 
 
-@maintain.deprecated("Use Profile.get_target() instead", since="2.2.2")
 def get_target(url: str, apikey: str | None):
     """DEPRECATED. Get target CKAN instance."""
+    deprecated(
+        "`utils.get_targetd()` is deprecated since v2.2.2."
+        + " Use Profile.get_target() instead."
+    )
     ckan = ckanapi.RemoteCKAN(url, apikey=apikey)
     return ckan
 
