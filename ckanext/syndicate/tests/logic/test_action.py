@@ -1,15 +1,14 @@
+import ckanapi
 import pytest
 
-import ckanapi
 import ckan.plugins.toolkit as tk
-
 from ckan.tests.helpers import call_action
+
 from ckanext.syndicate.utils import get_profiles
 
 
 @pytest.fixture
 def remote_org(organization_factory, user, monkeypatch, ckan_config):
-
     org = organization_factory(
         users=[{"capacity": "editor", "name": user["id"]}],
     )
@@ -46,9 +45,7 @@ class TestPrepare(object):
 @pytest.mark.usefixtures("clean_db", "ckan", "with_request_context")
 @pytest.mark.ckan_config("ckanext.syndicate.profile.test.name_prefix", "test")
 class TestSync(object):
-    def test_create_package(
-        self, create_with_upload, package_factory, remote_org
-    ):
+    def test_create_package(self, create_with_upload, package_factory, remote_org):
         dataset = package_factory(
             extras=[{"key": "syndicate", "value": "true"}],
         )
@@ -83,9 +80,7 @@ class TestSync(object):
         for idx, resource in enumerate(resources):
             assert source["resources"][idx]["url"] == resource["url"]
 
-    def test_update_package(
-        self, remote_org, create_with_upload, package_factory
-    ):
+    def test_update_package(self, remote_org, create_with_upload, package_factory):
         # Create a dummy remote dataset
         syndicated_id = package_factory()["id"]
 
@@ -119,9 +114,7 @@ class TestSync(object):
         local_resource_url = local_resource["url"]
         assert local_resource_url == remote_resource_url
 
-    def test_syndicate_existing_package_with_stale_syndicated_id(
-        self, package_factory
-    ):
+    def test_syndicate_existing_package_with_stale_syndicated_id(self, package_factory):
         stale = package_factory(
             extras=[
                 {"key": "syndicate", "value": "true"},
@@ -292,9 +285,7 @@ class TestSync(object):
     ):
         monkeypatch.setitem(ckan_config, "ckan.syndicate.author", user["name"])
 
-        dataset = package_factory(
-            extras=[{"key": "syndicate", "value": "true"}]
-        )
+        dataset = package_factory(extras=[{"key": "syndicate", "value": "true"}])
 
         mock_user_show = mocker.Mock()
         mock_user_show.return_value = user

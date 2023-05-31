@@ -1,6 +1,7 @@
+import pytest
+
 import ckan.model as model
 import ckan.plugins as p
-import pytest
 from ckan.model.domain_object import DomainObjectOperation
 
 from ckanext.syndicate.types import Topic
@@ -33,9 +34,7 @@ class TestDatasetNotify:
         self, syndicate, plugin, dataset_with_flag, mocker
     ):
         plugin.notify(dataset_with_flag, DomainObjectOperation.new)
-        syndicate.assert_called_with(
-            dataset_with_flag.id, Topic.create, mocker.ANY
-        )
+        syndicate.assert_called_with(dataset_with_flag.id, Topic.create, mocker.ANY)
 
     def test_does_not_syndicate_for_private_dataset(
         self, syndicate, plugin, dataset_with_flag
@@ -49,24 +48,16 @@ class TestDatasetNotify:
         self, syndicate, plugin, dataset_with_flag, mocker
     ):
         plugin.notify(dataset_with_flag, DomainObjectOperation.changed)
-        syndicate.assert_called_with(
-            dataset_with_flag.id, Topic.update, mocker.ANY
-        )
+        syndicate.assert_called_with(dataset_with_flag.id, Topic.update, mocker.ANY)
 
-    def test_does_not_syndicate_for_delete(
-        self, syndicate, plugin, dataset_with_flag
-    ):
-
+    def test_does_not_syndicate_for_delete(self, syndicate, plugin, dataset_with_flag):
         plugin.notify(dataset_with_flag, DomainObjectOperation.deleted)
         assert not (syndicate.called)
 
 
 @pytest.mark.usefixtures("clean_db", "with_plugins")
 class TestSyndicateFlag:
-    def test_syndicate_flag_with_capital_t(
-        self, syndicate, plugin, dataset, mocker
-    ):
-
+    def test_syndicate_flag_with_capital_t(self, syndicate, plugin, dataset, mocker):
         dataset.extras = {"syndicate": "True"}
         plugin.notify(dataset, DomainObjectOperation.new)
         syndicate.assert_called_with(dataset.id, Topic.create, mocker.ANY)
@@ -77,9 +68,7 @@ class TestSyndicateFlag:
         plugin.notify(dataset, DomainObjectOperation.new)
         assert not (syndicate.called)
 
-    def test_not_syndicated_when_flag_missing(
-        self, syndicate, plugin, dataset
-    ):
+    def test_not_syndicated_when_flag_missing(self, syndicate, plugin, dataset):
         plugin.notify(dataset, DomainObjectOperation.new)
         assert not (syndicate.called)
 

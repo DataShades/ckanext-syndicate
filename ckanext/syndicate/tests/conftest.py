@@ -1,6 +1,5 @@
-import pytest
 import ckanapi
-
+import pytest
 from pytest_factoryboy import register
 
 from ckan.tests import factories

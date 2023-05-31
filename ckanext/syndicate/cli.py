@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
+
+import time
 from collections import Counter
 
-import logging
-import time
+import click
 
 import ckan.model as model
 import ckan.plugins.toolkit as tk
-import click
 
-from . import utils, tasks
+from . import tasks, utils
 from .types import Topic
 
 
@@ -42,7 +42,6 @@ def sync(ctx: click.Context, id, timeout, foreground):
         tk.g.syndication = True
         with click.progressbar(packages, length=total) as bar:
             for package in bar:
-
                 bar.label = "Sending syndication signal to package {}".format(
                     package.id
                 )
@@ -50,9 +49,7 @@ def sync(ctx: click.Context, id, timeout, foreground):
                     if foreground:
                         tasks.sync_package(package.id, Topic.update, profile)
                     else:
-                        utils.syndicate_dataset(
-                            package.id, Topic.update, profile
-                        )
+                        utils.syndicate_dataset(package.id, Topic.update, profile)
 
                 time.sleep(timeout)
 
@@ -60,9 +57,7 @@ def sync(ctx: click.Context, id, timeout, foreground):
 @syndicate.command()
 def init():
     """Creates new syndication table."""
-    tk.error_shout(
-        "`ckan syndicate init` is not required and takes no effect anymore"
-    )
+    tk.error_shout("`ckan syndicate init` is not required and takes no effect anymore")
 
 
 @syndicate.command()

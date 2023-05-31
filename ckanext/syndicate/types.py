@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import enum
 import dataclasses
+import enum
 from typing import Any
 
-import ckan.plugins.toolkit as tk
 import ckanapi
+
+import ckan.plugins.toolkit as tk
 
 
 class Topic(enum.Enum):
@@ -38,7 +39,7 @@ class Profile:
         flags = [
             "replicate_organization",
             "update_organization",
-            "upload_organization_image"
+            "upload_organization_image",
         ]
 
         for flag in flags:

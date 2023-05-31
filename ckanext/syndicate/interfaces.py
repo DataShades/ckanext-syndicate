@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
+
 import ckanapi
 from werkzeug.utils import import_string
 
@@ -15,9 +16,7 @@ log = logging.getLogger(__name__)
 
 
 class ISyndicate(Interface):
-    def skip_syndication(
-        self, package: model.Package, profile: Profile
-    ) -> bool:
+    def skip_syndication(self, package: model.Package, profile: Profile) -> bool:
         """Decide whether a package must NOT be syndicated.
 
         Return `True` if package does not need syndication. Keep in mind, that
@@ -85,6 +84,4 @@ class ISyndicate(Interface):
         if not isinstance(error, ckanapi.ValidationError):
             return False
 
-        return "That URL is already in use." in error.error_dict.get(
-            "name", []
-        )
+        return "That URL is already in use." in error.error_dict.get("name", [])

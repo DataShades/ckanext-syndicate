@@ -8,9 +8,8 @@ import ckan.plugins.toolkit as tk
 from ckan.model.domain_object import DomainObjectOperation
 
 from . import cli, utils
-from .logic import auth, action
-
 from .interfaces import ISyndicate
+from .logic import action, auth
 from .types import Topic
 
 log = logging.getLogger(__name__)

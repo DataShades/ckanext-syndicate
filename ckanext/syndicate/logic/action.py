@@ -2,27 +2,25 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from typing_extensions import TypedDict
 import uuid
 from typing import Any, Optional
 
-
-import requests
 import ckanapi
+import requests
+from typing_extensions import TypedDict
 
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as tk
-
-from ckan.logic import validate
 from ckan import model
 from ckan.lib.search import rebuild
+from ckan.logic import validate
 
-from . import schema
-from .. import types, signals, utils
+from .. import signals, types, utils
 from ..interfaces import ISyndicate
-
+from . import schema
 
 log = logging.getLogger(__name__)
+
 
 class SyncData(TypedDict):
     id: str
@@ -92,9 +90,7 @@ def prepare(context, data_dict: SyncData):
 
     ckan = data_dict["profile"].get_target()
 
-    if data_dict[
-        "topic"
-    ] is types.Topic.update and not tk.h.get_pkg_dict_extra(
+    if data_dict["topic"] is types.Topic.update and not tk.h.get_pkg_dict_extra(
         package, data_dict["profile"].field_id
     ):
         data_dict["topic"] = types.Topic.create
@@ -181,9 +177,7 @@ def _group_or_org_sync(
 
     if profile.upload_organization_image:
         group.pop("image_url", None)
-        default_img_url = (
-            "https://www.gravatar.com/avatar/123?s=400&d=identicon"
-        )
+        default_img_url = "https://www.gravatar.com/avatar/123?s=400&d=identicon"
         image_url = group.pop("image_display_url") or default_img_url
         image_fd = requests.get(image_url, stream=True, timeout=2).raw
         group.update(image_upload=image_fd)
@@ -191,13 +185,9 @@ def _group_or_org_sync(
     for plugin in plugins.PluginImplementations(ISyndicate):
         group = plugin.prepare_group_for_syndication(local_id, group, profile)
 
-    signals.before_group_syndication.send(
-        local_id, profile=profile, details=group
-    )
+    signals.before_group_syndication.send(local_id, profile=profile, details=group)
     remote_group = action(**group)
-    signals.after_group_syndication.send(
-        local_id, profile=profile, remote=remote_group
-    )
+    signals.after_group_syndication.send(local_id, profile=profile, remote=remote_group)
 
     return remote_group["id"]
 
@@ -238,13 +228,9 @@ def _compute_base_data_and_topic(
     return base, topic
 
 
-def _notify_before(
-    package_id: str, profile: types.Profile, details: dict[str, Any]
-):
+def _notify_before(package_id: str, profile: types.Profile, details: dict[str, Any]):
     try:
-        tk.get_action("before_syndication_action")(
-            {"profile": profile}, details
-        )
+        tk.get_action("before_syndication_action")({"profile": profile}, details)
     except KeyError:
         pass
     else:
@@ -252,14 +238,10 @@ def _notify_before(
             "before_syndication_action is deprecated in v2.0.0. Use"
             " before_syndication signal instead"
         )
-    signals.before_syndication.send(
-        package_id, profile=profile, details=details
-    )
+    signals.before_syndication.send(package_id, profile=profile, details=details)
 
 
-def _notify_after(
-    package_id: str, profile: types.Profile, remote: dict[str, Any]
-):
+def _notify_after(package_id: str, profile: types.Profile, remote: dict[str, Any]):
     try:
         tk.get_action("after_syndication_action")({"profile": profile}, remote)
     except KeyError:
@@ -317,9 +299,7 @@ def reattaching_context(
     )
     author = profile.author
     if not author:
-        log.error(
-            "Profile %s does not have author set. Skip syndication", profile.id
-        )
+        log.error("Profile %s does not have author set. Skip syndication", profile.id)
         return
 
     try:
@@ -335,16 +315,13 @@ def reattaching_context(
         remote_user = ckan.action.user_show(id=author)
     except ckanapi.NotFound:
         log.error(
-            'User "{0}" not found on remote portal. Skip syndication'.format(
-                author
-            )
+            'User "{0}" not found on remote portal. Skip syndication'.format(author)
         )
         return
 
     if remote_package["creator_user_id"] != remote_user["id"]:
         log.error(
-            "Creator of remote package %s did not match '%s(%s)'. Skip"
-            " syndication",
+            "Creator of remote package %s did not match '%s(%s)'. Skip" " syndication",
             remote_package["creator_user_id"],
             author,
             remote_user["id"],
@@ -353,9 +330,7 @@ def reattaching_context(
 
     log.info("Author is the same({0}). Continue syndication".format(author))
 
-    result.update(
-        ckan.action.package_update(id=remote_package["id"], **package)
-    )
+    result.update(ckan.action.package_update(id=remote_package["id"], **package))
     set_syndicated_id(
         local_id,
         remote_package["id"],
@@ -396,9 +371,7 @@ def _prepare(
     extras_dict = dict([(o["key"], o["value"]) for o in package["extras"]])
 
     extras_dict.pop(profile.field_id, None)
-    package["extras"] = [
-        {"key": k, "value": v} for (k, v) in extras_dict.items()
-    ]
+    package["extras"] = [{"key": k, "value": v} for (k, v) in extras_dict.items()]
 
     package["resources"] = [
         {"url": r["url"], "name": r["name"]} for r in package["resources"]
@@ -417,8 +390,6 @@ def _prepare(
             " ISyndicate instead"
         )
     for plugin in plugins.PluginImplementations(ISyndicate):
-        package = plugin.prepare_package_for_syndication(
-            local_id, package, profile
-        )
+        package = plugin.prepare_package_for_syndication(local_id, package, profile)
 
     return package
