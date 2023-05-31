@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.2.2](https://github.com/DataShades/ckanext-syndicate/compare/v2.2.1...v2.2.2) (2023-05-31)
+
+
+### Features
+
+* configurable user agent ([afb2b7e](https://github.com/DataShades/ckanext-syndicate/commit/afb2b7e6d134b7ef13637696675f67349c8a8923))
+
 ### [2.2.1](https://github.com/DataShades/ckanext-syndicate/compare/v2.2.0...v2.2.1) (2023-05-26)
 
 
