@@ -45,19 +45,17 @@ class SyndicatePlugin(plugins.SingletonPlugin):
     # Based on ckanext-webhooks plugin
     # IDomainObjectNotification & IResourceURLChange
     def notify(self, entity, operation=None):
-        if not tk.asbool(
+        sync_on_changes = tk.asbool(
             tk.config.get(CONFIG_SYNC_ON_CHANGES, DEFAULT_SYNC_ON_CHANGES)
-        ):
-            return
+        )
 
-        if not operation:
-            # This happens on IResourceURLChange
-            return
-
+        # Handle only Package entities
         if not isinstance(entity, model.Package):
             return
 
-        _syndicate_dataset(entity, operation)
+        # Process deletions or other operations when they occur
+        if entity.state == "deleted" or (operation and sync_on_changes):
+            _syndicate_dataset(entity, operation)
 
 
 def _get_topic(operation: str) -> Topic:
