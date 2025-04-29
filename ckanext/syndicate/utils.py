@@ -57,36 +57,6 @@ def prepare_profile_dict(profile: Profile) -> Profile:
 
 
 def syndicate_configs_from_config(config) -> Iterable[Profile]:
-    prefix = "ckan.syndicate."
-    keys = (
-        "api_key",
-        "author",
-        "extras",
-        "field_id",
-        "flag",
-        "organization",
-        "predicate",
-        "name_prefix",
-        "replicate_organization",
-        "update_organization",
-        "ckan_url",
-    )
-
-    profile_lists = zip_longest(*[tk.aslist(config.get(prefix + key)) for key in keys])
-
-    for idx, item in enumerate(profile_lists):
-        deprecated(
-            f"Deprecated profile definition: {item}. Use"
-            f" {PROFILE_PREFIX}*.OPTION form"
-        )
-        data = dict((k, v) for k, v in zip(keys, item) if v is not None)
-
-        try:
-            data["extras"] = json.loads(data.get("extras", "{}"))
-        except (TypeError, ValueError):
-            data["extras"] = {}
-        yield Profile(id=str(idx), **data)
-
     yield from _parse_profiles(config)
 
 
