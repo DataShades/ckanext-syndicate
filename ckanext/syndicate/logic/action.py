@@ -330,7 +330,7 @@ def reattaching_context(
 
     log.info("Author is the same({0}). Continue syndication".format(author))
 
-    result.update(ckan.action.package_update(id=remote_package["id"], **package))
+    result.update(ckan.action.package_update(**dict(package, id=remote_package["id"])))
     set_syndicated_id(
         local_id,
         remote_package["id"],
