@@ -1,0 +1,137 @@
+<div class="d-flex">
+    <button class="btn btn-light btn-sm position-absolute end-0 me-3" aria-label="{{ _('View Details') }}"
+        onclick="document.getElementById('{{ modal_id }}').showModal()">
+        <i class="fa fa-up-right-from-square"></i>
+    </button>
+</div>
+
+<dialog id="{{ modal_id }}" class="border-1 rounded border-primary-subtle p-3">
+    <h2>{{ _("Details") }}</h2>
+
+    <!-- {
+        "extras": {},
+        "field_id": "syndicate_pdp_id",
+        "flag": "syndicate",
+        "id": "pdp",
+        "name_prefix": "",
+        "organization": "",
+        "refresh_package_name": false,
+        "replicate_organization": true,
+        "update_organization": false,
+        "upload_organization_image": true,
+        "user_agent": null
+    } -->
+    <table class="table table-bordered table-header">
+        <thead>
+            <tr>
+                <th class="fw-bold">{{ _('Key') }}</th>
+                <th class="fw-bold">{{ _('Description') }}</th>
+                <th class="fw-bold">{{ _('Value') }}</th>
+            </tr>
+        </thead>
+
+        <tr>
+            <td class="fw-bold align-top">api_key</td>
+            <td> {{ _("The API key used for authentication on the remote portal") }}</td>
+            <td>
+                {{ value.api_key }}
+            </td>
+        </tr>
+
+        <tr>
+            <td class="fw-bold align-top">ckan_url</td>
+            <td> {{ _("The URL of the remote CKAN portal") }}</td>
+            <td>
+                <a href="{{ value.ckan_url }}" target="_blank">{{ value.ckan_url }}</a>
+            </td>
+        </tr>
+
+        <tr>
+            <td class="fw-bold align-top">field_id</td>
+            <td> {{ _("The custom field ID where the remote dataset ID is stored") }}</td>
+            <td>
+                {{ value.field_id }}
+            </td>
+        </tr>
+
+        <tr>
+            <td class="fw-bold align-top">name_prefix</td>
+            <td> {{ _("The prefix added to the dataset name when creating it on the remote portal") }}</td>
+            <td>
+                {{ value.name_prefix }}
+            </td>
+        </tr>
+
+        <tr>
+            <td class="fw-bold align-top">organization</td>
+            <td> {{ _("The organization on the remote portal where datasets will be created") }}</td>
+            <td>
+                {{ value.organization }}
+            </td>
+        </tr>
+
+        <tr>
+            <td class="fw-bold align-top">extras</td>
+            <td> {{ _("Additional extras to include when creating/updating datasets on the remote portal") }}</td>
+            <td>
+                <pre>{{ value.extras | tojson(indent=2) }}</pre>
+            </td>
+        </tr>
+
+        <tr>
+            <td class="fw-bold align-top">refresh_package_name</td>
+            <td> {{ _("Whether to refresh the dataset name on the remote portal") }}</td>
+            <td>
+                {{ value.refresh_package_name }}
+            </td>
+        </tr>
+
+        <tr>
+            <td class="fw-bold align-top">replicate_organization</td>
+            <td> {{ _("Whether to replicate the organization on the remote portal") }}</td>
+            <td>
+                {{ value.replicate_organization }}
+            </td>
+        </tr>
+
+        <tr>
+            <td class="fw-bold align-top">update_organization</td>
+            <td> {{ _("Whether to update the organization details on the remote portal") }}</td>
+            <td>
+                {{ value.update_organization }}
+            </td>
+        </tr>
+
+        <tr>
+            <td class="fw-bold align-top">upload_organization_image</td>
+            <td> {{ _("Whether to upload the organization image to the remote portal") }}</td>
+            <td>
+                {{ value.upload_organization_image }}
+            </td>
+        </tr>
+
+        <tr>
+            <td class="fw-bold align-top">user_agent</td>
+            <td> {{ _("The User-Agent header to use for requests to the remote portal") }}</td>
+            <td>
+                {{ value.user_agent }}
+            </td>
+        </tr>
+
+        <tr>
+            <td class="fw-bold align-top">author</td>
+            <td> {{ _("The author of the dataset on the remote portal") }}</td>
+            <td>
+                {{ value.author }}
+            </td>
+
+        </tr>
+
+    </table>
+
+    <div class="d-flex justify-content-end">
+        <button class="btn btn-light" onclick="document.getElementById('{{ modal_id }}').close()">
+            {{ _('Close') }}
+        </button>
+    </div>
+</dialog>

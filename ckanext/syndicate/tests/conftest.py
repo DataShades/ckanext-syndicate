@@ -12,7 +12,7 @@ def ckan(user, api_token_factory, app, monkeypatch):
     token = api_token_factory(user=user["name"])
     ckan = ckanapi.TestAppCKAN(app, token["token"])
     monkeypatch.setattr(types.Profile, "get_target", lambda *args: ckan)
-    yield ckan
+    return ckan
 
 
 @register

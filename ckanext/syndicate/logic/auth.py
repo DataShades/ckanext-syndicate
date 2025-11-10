@@ -1,26 +1,19 @@
 from __future__ import annotations
 
-
-def get_auth_functions():
-    return {
-        "syndicate_sync": sync,
-        "syndicate_prepare": prepare,
-        "syndicate_sync_organization": sync_organization,
-        "syndicate_sync_group": sync_group,
-    }
+from ckan import types
 
 
-def sync(context, data_dict):
+def syndicate_sync(context: types.Context, data_dict: types.DataDict):
     return {"success": False}
 
 
-def prepare(context, data_dict):
+def syndicate_prepare(context: types.Context, data_dict: types.DataDict):
     return {"success": False}
 
 
-def sync_organization(context, data_dict):
+def syndicate_sync_organization(context: types.Context, data_dict: types.DataDict):
     return {"success": False}
 
 
-def sync_group(context, data_dict):
+def syndicate_sync_group(context: types.Context, data_dict: types.DataDict):
     return {"success": False}

@@ -3,23 +3,25 @@ from __future__ import annotations
 import contextlib
 import logging
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 import ckanapi
 import requests
 from typing_extensions import TypedDict
 
-import ckan.plugins as plugins
 import ckan.plugins.toolkit as tk
 from ckan import model
+from ckan import plugins as p
+from ckan import types as ckan_types
 from ckan.lib.search import rebuild
 from ckan.logic import validate
 
-from .. import signals, types, utils
-from ..interfaces import ISyndicate
-from . import schema
+from ckanext.syndicate import signals, types
+from ckanext.syndicate.interfaces import ISyndicate
+from ckanext.syndicate.logic import schema
 
 log = logging.getLogger(__name__)
+REMOTE_NAME_MAX_LENGTH = 100
 
 
 class SyncData(TypedDict):
@@ -28,18 +30,9 @@ class SyncData(TypedDict):
     profile: types.Profile
 
 
-def get_actions():
-    return {
-        "syndicate_sync": sync,
-        "syndicate_prepare": prepare,
-        "syndicate_sync_organization": sync_organization,
-        "syndicate_sync_group": sync_group,
-    }
-
-
-@validate(schema.sync)
-def sync(context, data_dict: SyncData):
-    tk.check_access("syndicate_sync", context, data_dict)
+@validate(schema.syndicate_sync)
+def syndicate_sync(context: ckan_types.Context, data_dict: SyncData):
+    tk.check_access("syndicate_sync", context, data_dict)  # type: ignore
 
     details = tk.get_action("syndicate_prepare")(
         context,
@@ -51,32 +44,32 @@ def sync(context, data_dict: SyncData):
     )
     ckan = data_dict["profile"].get_target()
 
-    _notify_before(data_dict["id"], data_dict["profile"], details)
+    signals.before_syndication.send(data_dict["id"], profile=data_dict["profile"], details=details)
 
-    with reattaching_context(
+    with _reattaching_context(
         details["package"]["id"],
         details["prepared"],
         data_dict["profile"],
         ckan,
     ) as result:
         if types.Topic[details["topic"]] is types.Topic.create:
-            result = ckan.action.package_create(**details["prepared"])
-            set_syndicated_id(
+            result = ckan.action.package_create(**details["prepared"])  # noqa: PLW2901
+            _set_syndicated_id(
                 details["package"]["id"],
                 result["id"],
                 data_dict["profile"].field_id,
             )
 
         else:
-            result = ckan.action.package_update(**details["prepared"])
+            result = ckan.action.package_update(**details["prepared"])  # noqa: PLW2901
 
-    _notify_after(data_dict["id"], data_dict["profile"], result)
+    signals.after_syndication.send(data_dict["id"], profile=data_dict["profile"], remote=result)
 
     return {"id": data_dict["id"]}
 
 
-@validate(schema.prepare)
-def prepare(context, data_dict: SyncData):
+@validate(schema.syndicate_prepare)
+def syndicate_prepare(context: ckan_types.Context, data_dict: SyncData):
     tk.check_access("syndicate_prepare", context, data_dict)
     package: dict[str, Any] = tk.get_action("package_show")(
         {
@@ -90,21 +83,14 @@ def prepare(context, data_dict: SyncData):
 
     ckan = data_dict["profile"].get_target()
 
-    if data_dict["topic"] is types.Topic.update and not tk.h.get_pkg_dict_extra(
-        package, data_dict["profile"].field_id
-    ):
+    if data_dict["topic"] is types.Topic.update and not tk.h.get_pkg_dict_extra(package, data_dict["profile"].field_id):
         data_dict["topic"] = types.Topic.create
 
-    base, topic = _compute_base_data_and_topic(
-        package, data_dict["topic"], data_dict["profile"], ckan
-    )
+    base, topic = _compute_base_data_and_topic(package, data_dict["topic"], data_dict["profile"], ckan)
 
     org = base.pop("organization")
 
-    if (
-        data_dict["profile"].replicate_organization
-        or data_dict["profile"].update_organization
-    ):
+    if data_dict["profile"].replicate_organization or data_dict["profile"].update_organization:
         base["owner_org"] = tk.get_action("syndicate_sync_organization")(
             context,
             {
@@ -122,18 +108,16 @@ def prepare(context, data_dict: SyncData):
 
 
 @validate(schema.sync_organization)
-def sync_organization(context, data_dict):
+def syndicate_sync_organization(context: ckan_types.Context, data_dict: ckan_types.DataDict):
     return _group_or_org_sync(context, data_dict, True)
 
 
 @validate(schema.sync_group)
-def sync_group(context, data_dict):
+def syndicate_sync_group(context: ckan_types.Context, data_dict: ckan_types.DataDict):
     return _group_or_org_sync(context, data_dict, False)
 
 
-def _group_or_org_sync(
-    context: dict[str, Any], data_dict: dict[str, Any], is_org: bool
-):
+def _group_or_org_sync(context: ckan_types.Context, data_dict: dict[str, Any], is_org: bool):
     type_ = "organization" if is_org else "group"
     group = tk.get_action(type_ + "_show")(context, {"id": data_dict["id"]})
     profile: types.Profile = data_dict["profile"]
@@ -151,9 +135,9 @@ def _group_or_org_sync(
             "Organization" if is_org else "Group",
         )
     except (ckanapi.NotAuthorized, ckanapi.CKANAPIError) as e:
-        log.error("Replication error(trying to continue): {}".format(e))
+        log.error("Replication error(trying to continue): {%s}", e)
     except Exception as e:
-        log.error("Replication error: {}".format(e))
+        log.error("Replication error: {%s}", e)
         raise
 
     if not data_dict["update_existing"] and remote_group:
@@ -182,7 +166,7 @@ def _group_or_org_sync(
         image_fd = requests.get(image_url, stream=True, timeout=2).raw
         group.update(image_upload=image_fd)
 
-    for plugin in plugins.PluginImplementations(ISyndicate):
+    for plugin in p.PluginImplementations(ISyndicate):
         group = plugin.prepare_group_for_syndication(local_id, group, profile)
 
     signals.before_group_syndication.send(local_id, profile=profile, details=group)
@@ -205,20 +189,14 @@ def _compute_base_data_and_topic(
         base["name"] = _compute_remote_name(package, profile)
 
     else:
-        syndicated_id: Optional[str] = tk.h.get_pkg_dict_extra(
-            package, profile.field_id
-        )
+        syndicated_id: str | None = tk.h.get_pkg_dict_extra(package, profile.field_id)
         if not syndicated_id:
-            return _compute_base_data_and_topic(
-                package, types.Topic.create, profile, ckan
-            )
+            return _compute_base_data_and_topic(package, types.Topic.create, profile, ckan)
 
         try:
             remote_package = ckan.action.package_show(id=syndicated_id)
         except ckanapi.NotFound:
-            return _compute_base_data_and_topic(
-                package, types.Topic.create, profile, ckan
-            )
+            return _compute_base_data_and_topic(package, types.Topic.create, profile, ckan)
 
         # Keep the existing remote ID and Name
         base["id"] = remote_package["id"]
@@ -228,48 +206,19 @@ def _compute_base_data_and_topic(
     return base, topic
 
 
-def _notify_before(package_id: str, profile: types.Profile, details: dict[str, Any]):
-    try:
-        tk.get_action("before_syndication_action")({"profile": profile}, details)
-    except KeyError:
-        pass
-    else:
-        utils.deprecated(
-            "before_syndication_action is deprecated in v2.0.0. Use"
-            " before_syndication signal instead"
-        )
-    signals.before_syndication.send(package_id, profile=profile, details=details)
-
-
-def _notify_after(package_id: str, profile: types.Profile, remote: dict[str, Any]):
-    try:
-        tk.get_action("after_syndication_action")({"profile": profile}, remote)
-    except KeyError:
-        pass
-    else:
-        utils.deprecated(
-            "after_syndication_action is deprecated in v2.0.0. Use"
-            " after_syndication signal instead"
-        )
-    signals.after_syndication.send(package_id, profile=profile, remote=remote)
-
-
 def _compute_remote_name(package: dict[str, Any], profile: types.Profile):
     name = package["name"]
     if profile.name_prefix:
-        name = "%s-%s" % (
-            profile.name_prefix,
-            name,
-        )
+        name = f"{profile.name_prefix}-{name}"
 
-    if len(name) > 100:
+    if len(name) > REMOTE_NAME_MAX_LENGTH:
         uniq = str(uuid.uuid3(uuid.NAMESPACE_DNS, name))
         name = name[:92] + uniq[:8]
     return name
 
 
 @contextlib.contextmanager
-def reattaching_context(
+def _reattaching_context(
     local_id: str,
     package: dict[str, Any],
     profile: types.Profile,
@@ -285,7 +234,7 @@ def reattaching_context(
     try:
         yield result
     except Exception as e:
-        for plugin in plugins.PluginImplementations(ISyndicate):
+        for plugin in p.PluginImplementations(ISyndicate):
             if plugin.reattach_on_syndication_error(e):
                 break
         else:
@@ -305,41 +254,36 @@ def reattaching_context(
     try:
         remote_package = ckan.action.package_show(id=package["name"])
     except ckanapi.NotFound:
-        log.error(
-            "Current user does not have access to read remote package. Skip"
-            " syndication"
-        )
+        log.error("Current user does not have access to read remote package. Skip syndication")
         return
 
     try:
         remote_user = ckan.action.user_show(id=author)
     except ckanapi.NotFound:
-        log.error(
-            'User "{0}" not found on remote portal. Skip syndication'.format(author)
-        )
+        log.error('User "{%s}" not found on remote portal. Skip syndication', author)
         return
 
     if remote_package["creator_user_id"] != remote_user["id"]:
         log.error(
-            "Creator of remote package %s did not match '%s(%s)'. Skip" " syndication",
+            "Creator of remote package %s did not match '%s(%s)'. Skip syndication",
             remote_package["creator_user_id"],
             author,
             remote_user["id"],
         )
         return
 
-    log.info("Author is the same({0}). Continue syndication".format(author))
+    log.info("Author is the same({%s}). Continue syndication", author)
 
     result.update(ckan.action.package_update(**dict(package, id=remote_package["id"])))
-    set_syndicated_id(
+    _set_syndicated_id(
         local_id,
         remote_package["id"],
         profile.field_id,
     )
 
 
-def set_syndicated_id(local_id: str, remote_id: str, field: str):
-    """Set the remote package id on the local package"""
+def _set_syndicated_id(local_id: str, remote_id: str, field: str):
+    """Set the remote package id on the local package."""
     ext_id = (
         model.Session.query(model.PackageExtra.id)
         .join(model.Package, model.Package.id == model.PackageExtra.package_id)
@@ -359,37 +303,19 @@ def set_syndicated_id(local_id: str, remote_id: str, field: str):
         model.Session.commit()
         model.Session.flush()
     else:
-        model.Session.query(model.PackageExtra).filter_by(id=ext_id.id).update(
-            {"value": remote_id, "state": "active"}
-        )
+        model.Session.query(model.PackageExtra).filter_by(id=ext_id.id).update({"value": remote_id, "state": "active"})
     rebuild(local_id)
 
 
-def _prepare(
-    local_id: str, package: dict[str, Any], profile: types.Profile
-) -> dict[str, Any]:
+def _prepare(local_id: str, package: dict[str, Any], profile: types.Profile) -> dict[str, Any]:
     extras_dict = dict([(o["key"], o["value"]) for o in package["extras"]])
 
     extras_dict.pop(profile.field_id, None)
     package["extras"] = [{"key": k, "value": v} for (k, v) in extras_dict.items()]
 
-    package["resources"] = [
-        {"url": r["url"], "name": r["name"]} for r in package["resources"]
-    ]
+    package["resources"] = [{"url": r["url"], "name": r["name"]} for r in package["resources"]]
 
-    try:
-        package = tk.get_action("update_dataset_for_syndication")(
-            {},
-            {"dataset_dict": package, "package_id": local_id},
-        )
-    except KeyError:
-        pass
-    else:
-        utils.deprecated(
-            "update_dataset_for_syndication is deprecated. Implement"
-            " ISyndicate instead"
-        )
-    for plugin in plugins.PluginImplementations(ISyndicate):
+    for plugin in p.PluginImplementations(ISyndicate):
         package = plugin.prepare_package_for_syndication(local_id, package, profile)
 
     return package

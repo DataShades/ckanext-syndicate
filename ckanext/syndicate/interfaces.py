@@ -4,10 +4,9 @@ import logging
 from typing import Any
 
 import ckanapi
-from werkzeug.utils import import_string
 
-import ckan.model as model
 import ckan.plugins.toolkit as tk
+from ckan import model
 from ckan.plugins import Interface
 
 from .types import Profile
@@ -28,17 +27,7 @@ class ISyndicate(Interface):
         if package.private:
             return True
 
-        if profile.predicate:
-            predicate = import_string(profile.predicate)
-            if not predicate(package):
-                log.info(
-                    "Dataset[{}] will not syndicate because of predicate[{}]"
-                    " rejection".format(package.id, profile.predicate)
-                )
-                return True
-
-        syndicate = tk.asbool(package.extras.get(profile.flag, "false"))
-        return not syndicate
+        return not tk.asbool(package.extras.get(profile.flag, "false"))
 
     def prepare_package_for_syndication(
         self, package_id: str, data_dict: dict[str, Any], profile: Profile
@@ -50,9 +39,7 @@ class ISyndicate(Interface):
         """
         return data_dict
 
-    def prepare_group_for_syndication(
-        self, group_id: str, group: dict[str, Any], profile: Profile
-    ) -> dict[str, Any]:
+    def prepare_group_for_syndication(self, group_id: str, group: dict[str, Any], profile: Profile) -> dict[str, Any]:
         """Make modifications of the dict that will be sent to remote portal.
 
         Remove all the sensitive fields, normalize group/organization type, etc.

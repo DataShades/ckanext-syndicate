@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import time
@@ -6,15 +5,11 @@ from collections import Counter
 
 import click
 
-import ckan.model as model
 import ckan.plugins.toolkit as tk
+from ckan import model
 
-from . import tasks, utils
-from .types import Topic
-
-
-def get_commands():
-    return [syndicate]
+from ckanext.syndicate import tasks, utils
+from ckanext.syndicate.types import Topic
 
 
 @click.group()
@@ -27,14 +22,11 @@ def syndicate():
 @click.option("-t", "--timeout", type=float, default=0)
 @click.option("-f", "--foreground", is_flag=True)
 @click.pass_context
-def sync(ctx: click.Context, id, timeout, foreground):
+def sync(ctx: click.Context, id: str, timeout: float, foreground: bool) -> None:
     """Syndicate datasets to remote portals."""
-
     packages = model.Session.query(model.Package)
     if id:
-        packages = packages.filter(
-            (model.Package.id == id) | (model.Package.name == id)
-        )
+        packages = packages.filter((model.Package.id == id) | (model.Package.name == id))
 
     total = packages.count()
 
@@ -42,9 +34,7 @@ def sync(ctx: click.Context, id, timeout, foreground):
         tk.g.syndication = True
         with click.progressbar(packages, length=total) as bar:
             for package in bar:
-                bar.label = "Sending syndication signal to package {}".format(
-                    package.id
-                )
+                bar.label = f"Sending syndication signal to package {package.id}"
                 for profile in utils.profiles_for(package):
                     if foreground:
                         tasks.sync_package(package.id, Topic.update, profile)
@@ -55,15 +45,9 @@ def sync(ctx: click.Context, id, timeout, foreground):
 
 
 @syndicate.command()
-def init():
-    """Creates new syndication table."""
-    tk.error_shout("`ckan syndicate init` is not required and takes no effect anymore")
-
-
-@syndicate.command()
 @click.argument("ids", nargs=-1)
-def check(ids: tuple[str]):
-    """Print profiles that will be used in case of syndication of pagkage."""
+def check(ids: tuple[str]) -> None:
+    """Print profiles that will be used in case of syndication of package."""
     q = model.Session.query(model.Package)
     if ids:
         q = q.filter(model.Package.id.in_(ids) | model.Package.name.in_(ids))

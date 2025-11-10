@@ -3,7 +3,7 @@ from __future__ import annotations
 import ckan.plugins as p
 import ckan.plugins.toolkit as tk
 
-from ..interfaces import ISyndicate
+from ckanext.syndicate.interfaces import ISyndicate
 
 
 class TestSyndicatePlugin(p.SingletonPlugin):

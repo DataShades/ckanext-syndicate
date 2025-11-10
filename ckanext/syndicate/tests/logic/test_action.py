@@ -12,18 +12,17 @@ def remote_org(organization_factory, user, monkeypatch, ckan_config):
     org = organization_factory(
         users=[{"capacity": "editor", "name": user["id"]}],
     )
-    monkeypatch.setitem(
-        ckan_config, "ckanext.syndicate.profile.test.organization", org["name"]
-    )
+    monkeypatch.setitem(ckan_config, "ckanext.syndicate.profile.test.organization", org["name"])
     return org
 
 
 @pytest.mark.usefixtures("clean_db", "ckan")
 @pytest.mark.ckan_config("ckanext.syndicate.profile.test.name_prefix", "test")
-class TestPrepare(object):
-    def test_prepare_default(self, package, remote_org):
+class TestPrepare:
+    def test_prepare_default(self, package, remote_org, sysadmin):
         prepared = call_action(
             "syndicate_prepare",
+            context={"user": sysadmin["name"]},
             id=package["id"],
             topic="create",
             profile=next(get_profiles()).id,
@@ -44,7 +43,7 @@ class TestPrepare(object):
 
 @pytest.mark.usefixtures("clean_db", "ckan", "with_request_context")
 @pytest.mark.ckan_config("ckanext.syndicate.profile.test.name_prefix", "test")
-class TestSync(object):
+class TestSync:
     def test_create_package(self, create_with_upload, package_factory, remote_org):
         dataset = package_factory(
             extras=[{"key": "syndicate", "value": "true"}],
@@ -91,9 +90,7 @@ class TestSync(object):
                 {"key": "syndicated_id", "value": syndicated_id},
             ]
         )
-        local_resource = create_with_upload(
-            "test", "test_file.txt", package_id=dataset["id"]
-        )
+        local_resource = create_with_upload("test", "test_file.txt", package_id=dataset["id"])
 
         call_action(
             "syndicate_sync",
@@ -140,15 +137,9 @@ class TestSync(object):
         syndicated = call_action("package_show", id=syndicated_id)
         assert syndicated["notes"] == updated["notes"]
 
-    @pytest.mark.ckan_config(
-        "ckanext.syndicate.profile.test.replicate_organization", "yes"
-    )
-    def test_organization_replication(
-        self, ckan, user, organization_factory, package_factory, mocker
-    ):
-        local_org = organization_factory(
-            users=[{"capacity": "editor", "name": user["id"]}]
-        )
+    @pytest.mark.ckan_config("ckanext.syndicate.profile.test.replicate_organization", "yes")
+    def test_organization_replication(self, ckan, user, organization_factory, package_factory, mocker):
+        local_org = organization_factory(users=[{"capacity": "editor", "name": user["id"]}])
         dataset = package_factory(
             owner_org=local_org["id"],
             extras=[{"key": "syndicate", "value": "true"}],
@@ -175,19 +166,13 @@ class TestSync(object):
 
         assert mock_org_create.called
 
-    @pytest.mark.ckan_config(
-        "ckanext.syndicate.profile.test.update_organization", "true"
-    )
-    def test_organization_update_true(
-        self, ckan, user, organization_factory, package_factory, mocker
-    ):
+    @pytest.mark.ckan_config("ckanext.syndicate.profile.test.update_organization", "true")
+    def test_organization_update_true(self, ckan, user, organization_factory, package_factory, mocker):
         """If ckanext.syndicate.profile.test.update_organization set to true,
         we're updating organization
 
         """
-        local_org = organization_factory(
-            users=[{"capacity": "editor", "name": user["id"]}]
-        )
+        local_org = organization_factory(users=[{"capacity": "editor", "name": user["id"]}])
         dataset = package_factory(
             owner_org=local_org["id"],
             extras=[{"key": "syndicate", "value": "true"}],
@@ -231,22 +216,14 @@ class TestSync(object):
 
         assert mock_org_update.called
 
-    @pytest.mark.ckan_config(
-        "ckanext.syndicate.profile.test.replicate_organization", "true"
-    )
-    @pytest.mark.ckan_config(
-        "ckanext.syndicate.profile.test.update_organization", "false"
-    )
-    def test_organization_update_false(
-        self, ckan, user, organization_factory, package_factory, mocker
-    ):
+    @pytest.mark.ckan_config("ckanext.syndicate.profile.test.replicate_organization", "true")
+    @pytest.mark.ckan_config("ckanext.syndicate.profile.test.update_organization", "false")
+    def test_organization_update_false(self, ckan, user, organization_factory, package_factory, mocker):
         """If ckanext.syndicate.profile.test.update_organization set to false,
         we're not updating organization
 
         """
-        local_org = organization_factory(
-            users=[{"capacity": "editor", "name": user["id"]}]
-        )
+        local_org = organization_factory(users=[{"capacity": "editor", "name": user["id"]}])
         dataset = package_factory(
             owner_org=local_org["id"],
             extras=[{"key": "syndicate", "value": "true"}],
@@ -292,12 +269,8 @@ class TestSync(object):
         assert not mock_org_update.called
 
     @pytest.mark.ckan_config("ckanext.syndicate.profile.test.name_prefix", "test")
-    def test_author_check(
-        self, user, ckan, monkeypatch, ckan_config, package_factory, mocker
-    ):
-        monkeypatch.setitem(
-            ckan_config, "ckanext.syndicate.profile.test.author", user["name"]
-        )
+    def test_author_check(self, user, ckan, monkeypatch, ckan_config, package_factory, mocker):
+        monkeypatch.setitem(ckan_config, "ckanext.syndicate.profile.test.author", user["name"])
 
         dataset = package_factory(extras=[{"key": "syndicate", "value": "true"}])
 

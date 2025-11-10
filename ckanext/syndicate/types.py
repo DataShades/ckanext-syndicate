@@ -30,7 +30,6 @@ class Profile:
     author: str = ""
 
     user_agent: str | None = None
-    predicate: str = ""
     extras: dict[str, Any] = dataclasses.field(default_factory=dict)
 
     upload_organization_image: bool = True
