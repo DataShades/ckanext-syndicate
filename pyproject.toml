@@ -39,14 +39,18 @@ lint.ignore = [
     "RET503", # don't enforce return-None
     "E712",   # comparison to bool: violated by SQLAlchemy filters
     # "PT004", # fixture does not return anything, add leading underscore: violated by clean_db
-    "PLC1901", # simplify comparison to empty string: violated by SQLAlchemy filters
+    "PLC1901", # simplify comparison to empty string: violated by SQLAlchemy filters,
+    "TRY003",  # allow specifying messages in exception
+    "D203",    # disable this one to keep D211
+    "D213",    # disable this one to keep D212
 ]
 
-[tool.ruff.per-file-ignores]
-"ckanext/syndicate/tests*" = [
+lint.per-file-ignores = { "ckanext/syndicate/tests*" = [
     "S",       # security testing
     "PLR2004", # magic value used in comparison
-]
+    "ANN001",  # missing type annotation
+    "PLR0913", # allow many function arguments in tests (fixtures)
+] }
 
 [tool.ruff.lint.isort]
 section-order = [

@@ -168,9 +168,10 @@ class TestSync:
 
     @pytest.mark.ckan_config("ckanext.syndicate.profile.test.update_organization", "true")
     def test_organization_update_true(self, ckan, user, organization_factory, package_factory, mocker):
-        """If ckanext.syndicate.profile.test.update_organization set to true,
-        we're updating organization
+        """Test organization update behavior.
 
+        If ckanext.syndicate.profile.test.update_organization set to true,
+        we're updating organization
         """
         local_org = organization_factory(users=[{"capacity": "editor", "name": user["id"]}])
         dataset = package_factory(
@@ -219,9 +220,10 @@ class TestSync:
     @pytest.mark.ckan_config("ckanext.syndicate.profile.test.replicate_organization", "true")
     @pytest.mark.ckan_config("ckanext.syndicate.profile.test.update_organization", "false")
     def test_organization_update_false(self, ckan, user, organization_factory, package_factory, mocker):
-        """If ckanext.syndicate.profile.test.update_organization set to false,
-        we're not updating organization
+        """Test organization update behavior.
 
+        If ckanext.syndicate.profile.test.update_organization set to false,
+        we're not updating organization
         """
         local_org = organization_factory(users=[{"capacity": "editor", "name": user["id"]}])
         dataset = package_factory(

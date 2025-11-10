@@ -9,10 +9,10 @@ import ckan.plugins.toolkit as tk
 from ckan import model
 from ckan.common import CKANConfig
 from ckan.lib.jobs import DEFAULT_QUEUE_NAME
-from ckan.plugins import PluginImplementations, get_plugin
+from ckan.plugins import PluginImplementations
 
-from .interfaces import ISyndicate
-from .types import Profile, Topic
+from ckanext.syndicate.interfaces import ISyndicate
+from ckanext.syndicate.types import Profile, Topic
 
 CONFIG_QUEUE_NAME = "ckanext.syndicate.queue.name"
 PROFILE_PREFIX = "ckanext.syndicate.profile."
@@ -24,21 +24,29 @@ def syndicate_dataset(package_id: str, topic: Topic, profile: Profile):
 
     If you need realtime syndication, use `syndicate_sync` action.
     """
-    from ckanext.syndicate import tasks
-
     tk.enqueue_job(
-        tasks.sync_package,
+        sync_package,
         [package_id, topic, profile],
         queue=tk.config.get(CONFIG_QUEUE_NAME, DEFAULT_QUEUE_NAME),
     )
 
 
-def prepare_profile_dict(profile: Profile) -> Profile:
-    return profile
+def sync_package(package_id: str, action: Topic, profile: Profile):
+    log.info(
+        "Sync package %s, with action %s to the %s",
+        package_id,
+        action.name,
+        profile.id,
+    )
+    user = tk.get_action("get_site_user")({"ignore_auth": True}, {})
+    tk.get_action("syndicate_sync")(
+        {"user": user["name"]},
+        {"id": package_id, "topic": action.name, "profile": profile.id},
+    )
 
 
-def syndicate_configs_from_config(config: CKANConfig) -> Iterable[Profile]:
-    yield from _parse_profiles(config)
+def get_profiles() -> Iterator[Profile]:
+    yield from _parse_profiles(tk.config)
 
 
 def _parse_profiles(config: CKANConfig) -> Iterable[Profile]:
@@ -58,24 +66,12 @@ def _parse_profiles(config: CKANConfig) -> Iterable[Profile]:
         yield Profile(id=id_, **data)
 
 
-def get_profiles() -> Iterator[Profile]:
-    for profile in syndicate_configs_from_config(tk.config):
-        yield prepare_profile_dict(profile)
-
-
-def get_profile(id_: str) -> Profile | None:
+def get_profile(profile_id: str) -> Profile | None:
     for profile in get_profiles():
-        if profile.id == id_:
-            return profile
+        if profile.id != profile_id:
+            continue
 
-
-def notify_sync(id_):
-    plugin = get_plugin("syndicate")
-
-    pkg = model.Package.get(id_)
-    if not pkg:
-        return
-    plugin.notify(pkg, "changed")
+        return profile
 
 
 def profiles_for(pkg: model.Package):
@@ -92,14 +88,3 @@ def profiles_for(pkg: model.Package):
             )
             continue
         yield profile
-
-
-def trigger_sync(id: str):
-    package = model.Package.get(id)
-
-    if not package:
-        return
-
-    for profile in profiles_for(package):
-        log.debug("Syndicate <%s> to %s", package.id, profile.ckan_url)
-        syndicate_dataset(package.id, Topic.update, profile)

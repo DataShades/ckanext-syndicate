@@ -71,9 +71,10 @@ def syndicate_sync(context: ckan_types.Context, data_dict: SyncData):
 @validate(schema.syndicate_prepare)
 def syndicate_prepare(context: ckan_types.Context, data_dict: SyncData):
     tk.check_access("syndicate_prepare", context, data_dict)
+
     package: dict[str, Any] = tk.get_action("package_show")(
         {
-            "user": context["user"],
+            "user": tk.current_user.name,
             "ignore_auth": context.get("ignore_auth", False),
             "use_cache": False,
             "validate": False,
@@ -107,6 +108,20 @@ def syndicate_prepare(context: ckan_types.Context, data_dict: SyncData):
     return {"package": package, "prepared": prepared, "topic": topic.name}
 
 
+def _prepare(local_id: str, package: dict[str, Any], profile: types.Profile) -> dict[str, Any]:
+    extras_dict = {o["key"]: o["value"] for o in package["extras"]}
+
+    extras_dict.pop(profile.field_id, None)
+    package["extras"] = [{"key": k, "value": v} for (k, v) in extras_dict.items()]
+
+    package["resources"] = [{"url": r["url"], "name": r["name"]} for r in package["resources"]]
+
+    for plugin in p.PluginImplementations(ISyndicate):
+        package = plugin.prepare_package_for_syndication(local_id, package, profile)
+
+    return package
+
+
 @validate(schema.sync_organization)
 def syndicate_sync_organization(context: ckan_types.Context, data_dict: ckan_types.DataDict):
     return _group_or_org_sync(context, data_dict, True)
@@ -129,15 +144,15 @@ def _group_or_org_sync(context: ckan_types.Context, data_dict: dict[str, Any], i
     try:
         remote_group = show(id=group["name"])
     except ckanapi.NotFound:
-        log.error(
+        log.warning(
             "%s not found, creating new %s.",
             group["name"],
             "Organization" if is_org else "Group",
         )
     except (ckanapi.NotAuthorized, ckanapi.CKANAPIError) as e:
-        log.error("Replication error(trying to continue): {%s}", e)
+        log.warning("Replication error(trying to continue): {%s}", e)
     except Exception as e:
-        log.error("Replication error: {%s}", e)
+        log.warning("Replication error: {%s}", e)
         raise
 
     if not data_dict["update_existing"] and remote_group:
@@ -224,11 +239,10 @@ def _reattaching_context(
     profile: types.Profile,
     ckan: ckanapi.RemoteCKAN,
 ):
-    """Yields empty result that will be overriden by the code of `with`-block.
+    """Yield an empty result to be overridden by the code in the `with` block.
 
     If with-block raises non-unique-url error, make an attempt to attach local
     dataset to the remote one. In case of success, update yielded empty result.
-
     """
     result = {}
     try:
@@ -248,23 +262,23 @@ def _reattaching_context(
     )
     author = profile.author
     if not author:
-        log.error("Profile %s does not have author set. Skip syndication", profile.id)
+        log.warning("Profile %s does not have author set. Skip syndication", profile.id)
         return
 
     try:
         remote_package = ckan.action.package_show(id=package["name"])
     except ckanapi.NotFound:
-        log.error("Current user does not have access to read remote package. Skip syndication")
+        log.warning("Current user does not have access to read remote package. Skip syndication")
         return
 
     try:
         remote_user = ckan.action.user_show(id=author)
     except ckanapi.NotFound:
-        log.error('User "{%s}" not found on remote portal. Skip syndication', author)
+        log.warning('User "{%s}" not found on remote portal. Skip syndication', author)
         return
 
     if remote_package["creator_user_id"] != remote_user["id"]:
-        log.error(
+        log.warning(
             "Creator of remote package %s did not match '%s(%s)'. Skip syndication",
             remote_package["creator_user_id"],
             author,
@@ -305,17 +319,3 @@ def _set_syndicated_id(local_id: str, remote_id: str, field: str):
     else:
         model.Session.query(model.PackageExtra).filter_by(id=ext_id.id).update({"value": remote_id, "state": "active"})
     rebuild(local_id)
-
-
-def _prepare(local_id: str, package: dict[str, Any], profile: types.Profile) -> dict[str, Any]:
-    extras_dict = dict([(o["key"], o["value"]) for o in package["extras"]])
-
-    extras_dict.pop(profile.field_id, None)
-    package["extras"] = [{"key": k, "value": v} for (k, v) in extras_dict.items()]
-
-    package["resources"] = [{"url": r["url"], "name": r["name"]} for r in package["resources"]]
-
-    for plugin in p.PluginImplementations(ISyndicate):
-        package = plugin.prepare_package_for_syndication(local_id, package, profile)
-
-    return package

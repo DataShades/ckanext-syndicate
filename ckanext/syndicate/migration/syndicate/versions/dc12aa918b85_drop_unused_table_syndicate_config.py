@@ -1,27 +1,25 @@
-"""Init config table.
+"""Drop unused table syndicate_config.
 
-Revision ID: f2304c5669f5
-Revises:
-Create Date: 2020-07-11 18:49:45.398018
+Revision ID: dc12aa918b85
+Revises: f2304c5669f5
+Create Date: 2025-11-10 13:21:53.460708
 """
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.engine.reflection import Inspector
 
 # revision identifiers, used by Alembic.
-revision = "f2304c5669f5"
-down_revision = None
+revision = "dc12aa918b85"
+down_revision = "f2304c5669f5"
 branch_labels = None
 depends_on = None
 
 
 def upgrade():
-    conn = op.get_bind()
-    inspector = Inspector.from_engine(conn)
-    tables = inspector.get_table_names()
-    if "syndicate_config" in tables:
-        return
+    op.drop_table("syndicate_config")
+
+
+def downgrade():
     op.create_table(
         "syndicate_config",
         sa.Column("id", sa.UnicodeText, primary_key=True),
@@ -35,7 +33,3 @@ def upgrade():
         sa.Column("syndicate_flag", sa.UnicodeText),
         sa.Column("syndicate_prefix", sa.UnicodeText),
     )
-
-
-def downgrade():
-    op.drop_table("syndicate_config")

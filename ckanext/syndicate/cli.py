@@ -8,7 +8,7 @@ import click
 import ckan.plugins.toolkit as tk
 from ckan import model
 
-from ckanext.syndicate import tasks, utils
+from ckanext.syndicate import utils
 from ckanext.syndicate.types import Topic
 
 
@@ -37,7 +37,7 @@ def sync(ctx: click.Context, id: str, timeout: float, foreground: bool) -> None:
                 bar.label = f"Sending syndication signal to package {package.id}"
                 for profile in utils.profiles_for(package):
                     if foreground:
-                        tasks.sync_package(package.id, Topic.update, profile)
+                        utils.sync_package(package.id, Topic.update, profile)
                     else:
                         utils.syndicate_dataset(package.id, Topic.update, profile)
 
