@@ -8,13 +8,12 @@ from collections.abc import Iterable, Iterator
 import ckan.plugins.toolkit as tk
 from ckan import model
 from ckan.common import CKANConfig
-from ckan.lib.jobs import DEFAULT_QUEUE_NAME
 from ckan.plugins import PluginImplementations
 
+from ckanext.syndicate import config
 from ckanext.syndicate.interfaces import ISyndicate
 from ckanext.syndicate.types import Profile, Topic
 
-CONFIG_QUEUE_NAME = "ckanext.syndicate.queue.name"
 PROFILE_PREFIX = "ckanext.syndicate.profile."
 log = logging.getLogger(__name__)
 
@@ -24,11 +23,7 @@ def syndicate_dataset(package_id: str, topic: Topic, profile: Profile):
 
     If you need realtime syndication, use `syndicate_sync` action.
     """
-    tk.enqueue_job(
-        sync_package,
-        [package_id, topic, profile],
-        queue=tk.config.get(CONFIG_QUEUE_NAME, DEFAULT_QUEUE_NAME),
-    )
+    tk.enqueue_job(sync_package, [package_id, topic, profile], queue=config.get_queue_name())
 
 
 def sync_package(package_id: str, action: Topic, profile: Profile):
