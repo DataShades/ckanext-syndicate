@@ -9,6 +9,7 @@ from ckan.common import CKANConfig
 from ckan.model.domain_object import DomainObjectOperation
 
 from ckanext.syndicate import config, utils
+from ckanext.syndicate.interfaces import ISyndicate
 from ckanext.syndicate.types import Topic
 
 log = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ log = logging.getLogger(__name__)
 class SyndicatePlugin(p.SingletonPlugin):
     p.implements(p.IConfigurer)
     p.implements(p.IDomainObjectModification, inherit=True)
+    p.implements(ISyndicate, inherit=True)
 
     # IConfigurer
 

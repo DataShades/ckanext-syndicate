@@ -4,14 +4,13 @@ from pytest_factoryboy import register
 
 from ckan.tests import factories
 
-from ckanext.syndicate import types
+from ckanext.syndicate.types import Profile
 
 
 @pytest.fixture
-def ckan(user, api_token_factory, app, monkeypatch):
-    token = api_token_factory(user=user["name"])
-    ckan = ckanapi.TestAppCKAN(app, token["token"])
-    monkeypatch.setattr(types.Profile, "get_target", lambda *args: ckan)
+def ckan(sysadmin, app, monkeypatch):
+    ckan = ckanapi.TestAppCKAN(app, sysadmin["token"])
+    monkeypatch.setattr(Profile, "get_target", lambda *args: ckan)
     return ckan
 
 
@@ -21,7 +20,11 @@ class PackageFactory(factories.Dataset):
 
 
 @register
-class UserFactory(factories.User):
+class UserFactory(factories.UserWithToken):
+    pass
+
+
+class SysadminFactory(factories.SysadminWithToken):
     pass
 
 
@@ -35,3 +38,4 @@ class OrganizationFactory(factories.Organization):
 
 
 register(OrganizationFactory, "organization")
+register(SysadminFactory, "sysadmin")

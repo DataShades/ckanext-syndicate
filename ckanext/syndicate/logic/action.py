@@ -74,7 +74,7 @@ def syndicate_prepare(context: ckan_types.Context, data_dict: SyncData):
 
     package: dict[str, Any] = tk.get_action("package_show")(
         {
-            "user": tk.current_user.name,
+            "user": context.get("user", ""),
             "ignore_auth": context.get("ignore_auth", False),
             "use_cache": False,
             "validate": False,

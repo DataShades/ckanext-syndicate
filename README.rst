@@ -46,7 +46,7 @@ To install ckanext-syndicate:
     git clone https://github.com/aptivate/ckanext-syndicate.git
     pip install -e ckanext-syndicate
 
-3. Add `syndicate` to the `ckan.plugins` setting in your CKAN config file.
+3. Add `syndicate tables` to the `ckan.plugins` setting in your CKAN config file.
 
 
 Config Settings for using in .ini file
