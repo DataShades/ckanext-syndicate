@@ -34,7 +34,7 @@ class GroupFactory(factories.Group):
 
 
 class OrganizationFactory(factories.Organization):
-    pass
+    image_url = ""
 
 
 register(OrganizationFactory, "organization")
