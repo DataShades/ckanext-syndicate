@@ -73,17 +73,19 @@ ckanext.syndicate.profile.another.ckan_url = https://another.example.com
 Here is the full list of config options available for `Profile`. Don't forget
 to replace `PROFILE_ID` with any identifier you like.
 
+> Note: In the options below, PREFIX = ckanext.syndicate.profile.PROFILE_ID.
+
 | **Option**                                                         | **Default**     |**Example**                            | **Description**                                                                                                                                   |
 | ------------------------------------------------------------------ | --------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------|
-| `ckanext.syndicate.profile.PROFILE_ID.ckan_url`                    | *(required)*    | `https://data.example.com`            | The URL of the target CKAN instance to which datasets will be syndicated.                                                                         |
-| `ckanext.syndicate.profile.PROFILE_ID.api_key`                     | *(required)*    | `9efdd954-c643-444a-97a1-c9c374cef861`| The API key of the user on the target CKAN instance.                                                                                              |
-| `ckanext.syndicate.profile.PROFILE_ID.flag`                        | `syndicate`     | `syndicate_to_hdx`                    | The custom metadata flag used to mark datasets for syndication.                                                                                   |
-| `ckanext.syndicate.profile.PROFILE_ID.field_id`                    | `syndicated_id` | `hdx_id`                              | The custom metadata field used to store the syndicated dataset ID on the original dataset.                                                        |
-| `ckanext.syndicate.profile.PROFILE_ID.name_prefix`                 | `''`            | `my-prefix`                           | A prefix added to the name of the syndicated dataset.                                                                                             |
-| `ckanext.syndicate.profile.PROFILE_ID.organization`                | `None`          | `test-org`                            | The name of the organization on the target CKAN instance where syndicated datasets are created.                                                   |
-| `ckanext.syndicate.profile.PROFILE_ID.replicate_organization`      | `false`         | `true`                                | Whether to replicate the original dataset’s organization on the target CKAN instance.                                                             |
-| `ckanext.syndicate.profile.PROFILE_ID.update_organization`         | `false`         | `true`                                | Whether to update organization metadata (doesn't update extras) if exists                                                                         |
-| `ckanext.syndicate.profile.PROFILE_ID.author`                      | `None`          | `ricardomm`                           | The username whose API key is used. If a dataset already exists on the target CKAN, it will only be updated if its creator matches this username. |
+| `PREFIX.ckan_url`                    | *(required)*    | `https://data.example.com`            | The URL of the target CKAN instance to which datasets will be syndicated.                                                                         |
+| `PREFIX.api_key`                     | *(required)*    | `9efdd954-c643-444a-97a1-c9c374cef861`| The API key of the user on the target CKAN instance.                                                                                              |
+| `PREFIX.flag`                        | `syndicate`     | `syndicate_to_hdx`                    | The custom metadata flag used to mark datasets for syndication.                                                                                   |
+| `PREFIX.field_id`                    | `syndicated_id` | `hdx_id`                              | The custom metadata field used to store the syndicated dataset ID on the original dataset.                                                        |
+| `PREFIX.name_prefix`                 | `''`            | `my-prefix`                           | A prefix added to the name of the syndicated dataset.                                                                                             |
+| `PREFIX.organization`                | `None`          | `test-org`                            | The name of the organization on the target CKAN instance where syndicated datasets are created.                                                   |
+| `PREFIX.replicate_organization`      | `false`         | `true`                                | Whether to replicate the original dataset’s organization on the target CKAN instance.                                                             |
+| `PREFIX.update_organization`         | `false`         | `true`                                | Whether to update organization metadata (doesn't update extras) if exists                                                                         |
+| `PREFIX.author`                      | `None`          | `ricardomm`                           | The username whose API key is used. If a dataset already exists on the target CKAN, it will only be updated if its creator matches this username. |
 
 
 In addition, the following config options control behavior of syndication process in general:
