@@ -110,10 +110,9 @@ def syndicate_prepare(context: ckan_types.Context, data_dict: SyncData):
 
 def _prepare(local_id: str, package: dict[str, Any], profile: types.Profile) -> dict[str, Any]:
     extras_dict = {o["key"]: o["value"] for o in package["extras"]}
-
     extras_dict.pop(profile.field_id, None)
-    package["extras"] = [{"key": k, "value": v} for (k, v) in extras_dict.items()]
 
+    package["extras"] = [{"key": k, "value": v} for (k, v) in extras_dict.items()]
     package["resources"] = [{"url": r["url"], "name": r["name"]} for r in package["resources"]]
 
     for plugin in p.PluginImplementations(ISyndicate):

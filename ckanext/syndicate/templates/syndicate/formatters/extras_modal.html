@@ -8,19 +8,6 @@
 <dialog id="{{ modal_id }}" class="border-1 rounded border-primary-subtle p-3">
     <h2>{{ _("Details") }}</h2>
 
-    <!-- {
-        "extras": {},
-        "field_id": "syndicate_pdp_id",
-        "flag": "syndicate",
-        "id": "pdp",
-        "name_prefix": "",
-        "organization": "",
-        "refresh_package_name": false,
-        "replicate_organization": true,
-        "update_organization": false,
-        "upload_organization_image": true,
-        "user_agent": null
-    } -->
     <table class="table table-bordered table-header">
         <thead>
             <tr>
@@ -67,14 +54,6 @@
             <td> {{ _("The organization on the remote portal where datasets will be created") }}</td>
             <td>
                 {{ value.organization }}
-            </td>
-        </tr>
-
-        <tr>
-            <td class="fw-bold align-top">extras</td>
-            <td> {{ _("Additional extras to include when creating/updating datasets on the remote portal") }}</td>
-            <td>
-                <pre>{{ value.extras | tojson(indent=2) }}</pre>
             </td>
         </tr>
 

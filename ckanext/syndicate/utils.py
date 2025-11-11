@@ -23,7 +23,9 @@ def syndicate_dataset(package_id: str, topic: Topic, profile: Profile):
 
     If you need realtime syndication, use `syndicate_sync` action.
     """
-    tk.enqueue_job(sync_package, [package_id, topic, profile], queue=config.get_queue_name())
+    tk.enqueue_job(
+        sync_package, [package_id, topic, profile], queue=config.get_queue_name()
+    )
 
 
 def sync_package(package_id: str, action: Topic, profile: Profile):
@@ -41,23 +43,16 @@ def sync_package(package_id: str, action: Topic, profile: Profile):
 
 
 def get_profiles() -> Iterator[Profile]:
-    yield from _parse_profiles(tk.config)
-
-
-def _parse_profiles(config: CKANConfig) -> Iterable[Profile]:
     profiles = defaultdict(dict)
-    for opt, v in config.items():
+
+    for opt, v in tk.config.items():
         if not opt.startswith(PROFILE_PREFIX):
             continue
+
         profile, attr = opt[len(PROFILE_PREFIX) :].split(".", 1)
         profiles[profile][attr] = v
 
     for id_, data in profiles.items():
-        try:
-            data["extras"] = json.loads(data.get("extras", "{}"))
-        except (TypeError, ValueError):
-            data["extras"] = {}
-
         yield Profile(id=id_, **data)
 
 
