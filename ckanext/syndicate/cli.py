@@ -11,6 +11,10 @@ from ckan import model
 from ckanext.syndicate import utils
 from ckanext.syndicate.types import Topic
 
+__all__ = [
+    "syndicate",
+]
+
 
 @click.group()
 def syndicate():
@@ -23,10 +27,12 @@ def syndicate():
 @click.option("-f", "--foreground", is_flag=True)
 @click.pass_context
 def sync(ctx: click.Context, id: str, timeout: float, foreground: bool) -> None:
-    """Syndicate datasets to remote portals."""
+    """Syndicate datasets for all profiles."""
     packages = model.Session.query(model.Package)
     if id:
-        packages = packages.filter((model.Package.id == id) | (model.Package.name == id))
+        packages = packages.filter(
+            (model.Package.id == id) | (model.Package.name == id)
+        )
 
     total = packages.count()
 
@@ -68,3 +74,12 @@ def check(ids: tuple[str]) -> None:
     click.secho("Statistics:", bold=True)
     for profile, count in counter.items():
         click.secho(f"\t{profile}: {count}")
+
+
+@syndicate.command()
+@click.argument("profile_id", required=True)
+@click.option("-f", "--foreground", is_flag=True)
+@click.pass_context
+def sync_profile(ctx: click.Context, profile_id: str, foreground: bool) -> None:
+    """Syndicate datasets for a specific profile."""
+    utils.sync_profile(profile_id, foreground=foreground)

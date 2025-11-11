@@ -22,12 +22,13 @@ def remote_org(organization_factory, user, monkeypatch, ckan_config):
 @pytest.mark.ckan_config("ckanext.syndicate.profile.test.name_prefix", "test")
 class TestPrepare:
     def test_prepare_default(self, package, remote_org, sysadmin):
+        profile = get_profiles(force_refresh=True)[0]
         prepared = call_action(
             "syndicate_prepare",
             context={"user": sysadmin["name"]},
             id=package["id"],
             topic="create",
-            profile=next(get_profiles()).id,
+            profile=profile.id,
         )
         assert prepared["topic"] == "create"
         assert prepared["package"] == package
@@ -50,6 +51,7 @@ class TestSync:
         dataset = package_factory(
             extras=[{"key": "syndicate", "value": "true"}],
         )
+        profile = get_profiles(force_refresh=True)[0]
         syndicated_id = tk.h.get_pkg_dict_extra(dataset, "syndicated_id")
         assert syndicated_id is None
 
@@ -61,7 +63,7 @@ class TestSync:
             context={"user": sysadmin["name"]},
             id=dataset["id"],
             topic="create",
-            profile=next(get_profiles()).id,
+            profile=profile.id,
         )
 
         # Reload our local package, to read the syndicated ID
@@ -85,6 +87,7 @@ class TestSync:
     def test_update_package(self, remote_org, create_with_upload, package_factory):
         # Create a dummy remote dataset
         syndicated_id = package_factory()["id"]
+        profile = get_profiles(force_refresh=True)[0]
 
         # Create the local syndicated dataset, pointing to the dummy remote
         dataset = package_factory(
@@ -101,7 +104,7 @@ class TestSync:
             "syndicate_sync",
             id=dataset["id"],
             topic="update",
-            profile=next(get_profiles()).id,
+            profile=profile.id,
         )
 
         # Expect the remote package to be updated
@@ -117,6 +120,7 @@ class TestSync:
         assert local_resource_url == remote_resource_url
 
     def test_syndicate_existing_package_with_stale_syndicated_id(self, package_factory):
+        profile = get_profiles(force_refresh=True)[0]
         stale = package_factory(
             extras=[
                 {"key": "syndicate", "value": "true"},
@@ -131,7 +135,7 @@ class TestSync:
             "syndicate_sync",
             id=stale["id"],
             topic="update",
-            profile=next(get_profiles()).id,
+            profile=profile.id,
         )
 
         updated = call_action("package_show", id=stale["id"])
@@ -153,6 +157,7 @@ class TestSync:
             owner_org=local_org["id"],
             extras=[{"key": "syndicate", "value": "true"}],
         )
+        profile = get_profiles(force_refresh=True)[0]
 
         ckan.address = "http://example.com"
 
@@ -169,7 +174,7 @@ class TestSync:
             "syndicate_sync",
             id=dataset["id"],
             topic="create",
-            profile=next(get_profiles()).id,
+            profile=profile.id,
         )
         mock_org_show.assert_called_once_with(id=local_org["name"])
 
@@ -193,6 +198,7 @@ class TestSync:
             owner_org=local_org["id"],
             extras=[{"key": "syndicate", "value": "true"}],
         )
+        profile = get_profiles(force_refresh=True)[0]
 
         mock_org_create = mocker.Mock()
         mock_org_show = mocker.Mock()
@@ -205,8 +211,6 @@ class TestSync:
         ckan.action.organization_create = mock_org_create
         ckan.action.organization_show = mock_org_show
         ckan.action.organization_update = mock_org_update
-
-        profile = next(get_profiles())
 
         call_action(
             "syndicate_sync",
@@ -253,6 +257,7 @@ class TestSync:
             owner_org=local_org["id"],
             extras=[{"key": "syndicate", "value": "true"}],
         )
+        profile = get_profiles(force_refresh=True)[0]
 
         mock_org_create = mocker.Mock()
         mock_org_show = mocker.Mock()
@@ -265,8 +270,6 @@ class TestSync:
         ckan.action.organization_create = mock_org_create
         ckan.action.organization_show = mock_org_show
         ckan.action.organization_update = mock_org_update
-
-        profile = next(get_profiles())
 
         call_action(
             "syndicate_sync",
@@ -307,12 +310,13 @@ class TestSync:
         mock_user_show.return_value = user
 
         ckan.action.user_show = mock_user_show
+        profile = get_profiles(force_refresh=True)[0]
 
         call_action(
             "syndicate_sync",
             id=dataset["id"],
             topic="create",
-            profile=next(get_profiles()).id,
+            profile=profile.id,
         )
         call_action(
             "package_patch",
@@ -324,7 +328,7 @@ class TestSync:
             "syndicate_sync",
             id=dataset["id"],
             topic="update",
-            profile=next(get_profiles()).id,
+            profile=profile.id,
         )
 
         mock_user_show.assert_called_once_with(id=user["name"])

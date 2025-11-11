@@ -56,5 +56,5 @@ def _syndicate_dataset(package: model.Package, operation: str) -> None:
         return
 
     for profile in utils.profiles_for(package):
-        log.debug("Syndicate <%s> to %s", package.id, profile.ckan_url)
+        log.debug("Syndicate on change triggered for <%s> to %s", package.id, profile.ckan_url)
         utils.syndicate_dataset(package.id, topic, profile)

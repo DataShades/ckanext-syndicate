@@ -37,10 +37,10 @@ class DashboardTable(t.TableDefinition):
                 t.ColumnDefinition(field="author"),
                 t.ColumnDefinition(
                     field="details",
-                    title="",
+                    title="Details",
                     formatters=[(ExtrasDialogModalFormatter, {})],
                     tabulator_formatter="html",
-                    width=50,
+                    width=100,
                     resizable=False,
                     sortable=False,
                 ),
@@ -61,14 +61,18 @@ class DashboardTable(t.TableDefinition):
                     icon="fa fa-sync",
                     with_confirmation=True,
                 ),
+                t.RowActionDefinition(
+                    action="show_packages",
+                    label=tk._("Show packages"),
+                    callback=self.row_action_show_packages,
+                    icon="fa fa-database",
+                ),
             ],
         )
 
     def table_action_resyndicate_all(self) -> t.ActionHandlerResult:
         for _ in utils.get_profiles():
-            # TODO : the func is to be implemented
-            # utils.syndicate_all_datasets(profile)
-            pass
+            utils.sync_all_profiles()
 
         return t.ActionHandlerResult(
             success=True,
@@ -86,11 +90,18 @@ class DashboardTable(t.TableDefinition):
                 message=tk._("Profile not found."),
             )
 
-        # TODO: the func is to be implemented
-        # utils.syndicate_profile(profile)
+        utils.sync_profile(profile.id)
 
         return t.ActionHandlerResult(
             success=True,
             error=None,
-            message=tk._("Resyndication job has been queued."),
+            message=tk._("Profile sync job has been queued."),
         )
+
+    def row_action_show_packages(self, row: t.Row) -> t.ActionHandlerResult:
+        if profile := utils.get_profile(row["id"]):
+            return t.ActionHandlerResult(
+                success=True,
+                error=None,
+                redirect=tk.url_for("dataset.search", q=f"extras_{profile.field_id}:*"),
+            )
