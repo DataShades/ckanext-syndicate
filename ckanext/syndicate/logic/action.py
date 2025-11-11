@@ -149,9 +149,9 @@ def _group_or_org_sync(context: ckan_types.Context, data_dict: dict[str, Any], i
             "Organization" if is_org else "Group",
         )
     except (ckanapi.NotAuthorized, ckanapi.CKANAPIError) as e:
-        log.warning("Replication error(trying to continue): {%s}", e)
-    except Exception as e:
-        log.warning("Replication error: {%s}", e)
+        log.warning("Replication error (trying to continue): {%s}", e)
+    except Exception:
+        log.exception("Replication error")
         raise
 
     if not data_dict["update_existing"] and remote_group:

@@ -75,18 +75,20 @@ to replace `PROFILE_ID` with any identifier you like.
 
 > Note: In the options below, PREFIX = ckanext.syndicate.profile.PROFILE_ID.
 
-| **Option**                                                         | **Default**     |**Example**                            | **Description**                                                                                                                                   |
-| ------------------------------------------------------------------ | --------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Option**                                                         | **Default**     |**Example**                            | **Description**                                                                                                     |
+| ------------------------------------------------------------------ | --------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------|
 | `PREFIX.ckan_url`                    | *(required)*    | `https://data.example.com`            | The URL of the target CKAN instance to which datasets will be syndicated.                                                                         |
 | `PREFIX.api_key`                     | *(required)*    | `9efdd954-c643-444a-97a1-c9c374cef861`| The API key of the user on the target CKAN instance.                                                                                              |
+| `PREFIX.organization`                | `None`          | `test-org`                            | The name of the organization on the target CKAN instance where syndicated datasets are created.                                                   |
 | `PREFIX.flag`                        | `syndicate`     | `syndicate_to_hdx`                    | The custom metadata flag used to mark datasets for syndication.                                                                                   |
 | `PREFIX.field_id`                    | `syndicated_id` | `hdx_id`                              | The custom metadata field used to store the syndicated dataset ID on the original dataset.                                                        |
 | `PREFIX.name_prefix`                 | `''`            | `my-prefix`                           | A prefix added to the name of the syndicated dataset.                                                                                             |
-| `PREFIX.organization`                | `None`          | `test-org`                            | The name of the organization on the target CKAN instance where syndicated datasets are created.                                                   |
 | `PREFIX.replicate_organization`      | `false`         | `true`                                | Whether to replicate the original dataset’s organization on the target CKAN instance.                                                             |
 | `PREFIX.update_organization`         | `false`         | `true`                                | Whether to update organization metadata (doesn't update extras) if exists                                                                         |
+| `PREFIX.refresh_package_name`        | `false`         | `true`                                | Whether to refresh the dataset name on the remote portal.                                                                                         |
 | `PREFIX.author`                      | `None`          | `ricardomm`                           | The username whose API key is used. If a dataset already exists on the target CKAN, it will only be updated if its creator matches this username. |
-
+| `PREFIX.user_agent`                  | `None`          | `My CKAN Syndicator/1.0`              | Custom User-Agent string to use for HTTP requests to the target CKAN instance.                                                                    |
+| `PREFIX.upload_organization_image`   | `true`          | `false`                               | Whether to upload organization image when replicating organization.                                                                               |
 
 In addition, the following config options control behavior of syndication process in general:
 

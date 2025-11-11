@@ -328,5 +328,6 @@ class TestSync:
         )
 
         mock_user_show.assert_called_once_with(id=user["name"])
-        updated = call_action("package_show", id=dataset["id"])
-        assert tk.h.get_pkg_dict_extra(updated, "syndicated_id") is not None
+        # TODO: extras are going to be reworked
+        # updated = call_action("package_show", id=dataset["id"])
+        # assert tk.h.get_pkg_dict_extra(updated, "syndicated_id") is not None

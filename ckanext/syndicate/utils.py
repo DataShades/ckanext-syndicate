@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import json
 import logging
 from collections import defaultdict
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 
 import ckan.plugins.toolkit as tk
 from ckan import model
-from ckan.common import CKANConfig
 from ckan.plugins import PluginImplementations
 
 from ckanext.syndicate import config

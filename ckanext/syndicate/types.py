@@ -28,10 +28,7 @@ class Profile:
     update_organization: bool = False
     refresh_package_name: bool = False
     author: str = ""
-
     user_agent: str | None = None
-    extras: dict[str, Any] = dataclasses.field(default_factory=dict)
-
     upload_organization_image: bool = True
 
     def __post_init__(self):

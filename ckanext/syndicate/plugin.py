@@ -30,8 +30,8 @@ class SyndicatePlugin(p.SingletonPlugin):
     def update_config(self, config_: CKANConfig) -> None:
         tk.add_template_directory(config_, "templates")
 
-    # Based on ckanext-webhooks plugin
-    # IDomainObjectNotification & IResourceURLChange
+    # IDomainObjectModification
+
     def notify(self, entity: model.DomainObject, operation: str | None = None):
         if (
             not config.get_sync_on_changes()
@@ -44,9 +44,11 @@ class SyndicatePlugin(p.SingletonPlugin):
 
 
 def _syndicate_dataset(package: model.Package, operation: str) -> None:
-    topic = _get_topic(operation)
-
-    if topic is Topic.unknown:
+    if operation == DomainObjectOperation.new:
+        topic = Topic.create
+    elif operation == DomainObjectOperation.changed:
+        topic = Topic.update
+    else:
         log.debug(
             "Notification topic for operation [%s] is not defined",
             operation,
@@ -56,13 +58,3 @@ def _syndicate_dataset(package: model.Package, operation: str) -> None:
     for profile in utils.profiles_for(package):
         log.debug("Syndicate <%s> to %s", package.id, profile.ckan_url)
         utils.syndicate_dataset(package.id, topic, profile)
-
-
-def _get_topic(operation: str) -> Topic:
-    if operation == DomainObjectOperation.new:
-        return Topic.create
-
-    if operation == DomainObjectOperation.changed:
-        return Topic.update
-
-    return Topic.unknown
