@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import dataclasses
 import enum
-from typing import Any
 
 import ckanapi
 
 import ckan.plugins.toolkit as tk
+from ckan.lib.jobs import DEFAULT_QUEUE_NAME
+
+from ckanext.syndicate import config
 
 
 class Topic(enum.Enum):
@@ -30,6 +32,7 @@ class Profile:
     author: str = ""
     user_agent: str | None = None
     upload_organization_image: bool = True
+    queue: str = DEFAULT_QUEUE_NAME
 
     def __post_init__(self):
         flags = [

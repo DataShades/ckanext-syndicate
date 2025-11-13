@@ -112,8 +112,7 @@ Reactions are useful when you need to perform a side-effect right before or righ
 * `after_group_syndication`
 
 The `before_syndication` and `after_syndication` signals get the local dataset's ID as sender and extra keyword argument
-with the name `profile` (current syndication profile). Basic subscription looks
-like this:
+with the name `profile` (current syndication profile). Basic subscription looks like this:
 
 ```py
 @after_syndication.connect

@@ -1,3 +1,3 @@
-from .tables import DashboardTable
+from .tables import DashboardTable, ProfileLogsTable
 
-__all__ = ["DashboardTable"]
+__all__ = ["DashboardTable", "ProfileLogsTable"]

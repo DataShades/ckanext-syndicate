@@ -30,9 +30,7 @@ def sync(ctx: click.Context, id: str, timeout: float, foreground: bool) -> None:
     """Syndicate datasets for all profiles."""
     packages = model.Session.query(model.Package)
     if id:
-        packages = packages.filter(
-            (model.Package.id == id) | (model.Package.name == id)
-        )
+        packages = packages.filter((model.Package.id == id) | (model.Package.name == id))
 
     total = packages.count()
 

@@ -19,6 +19,7 @@ from ckan.logic import validate
 from ckanext.syndicate import signals, types
 from ckanext.syndicate.interfaces import ISyndicate
 from ckanext.syndicate.logic import schema
+from ckanext.syndicate.model import SyndicationLog
 
 log = logging.getLogger(__name__)
 REMOTE_NAME_MAX_LENGTH = 100
@@ -65,7 +66,7 @@ def syndicate_sync(context: ckan_types.Context, data_dict: SyncData):
 
     signals.after_syndication.send(data_dict["id"], profile=data_dict["profile"], remote=result)
 
-    return {"id": data_dict["id"]}
+    return {"id": result["id"]}
 
 
 @validate(schema.syndicate_prepare)
@@ -220,8 +221,9 @@ def _compute_base_data_and_topic(
     return base, topic
 
 
-def _compute_remote_name(package: dict[str, Any], profile: types.Profile):
+def _compute_remote_name(package: dict[str, Any], profile: types.Profile) -> str:
     name = package["name"]
+
     if profile.name_prefix:
         name = f"{profile.name_prefix}-{name}"
 

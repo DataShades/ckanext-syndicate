@@ -6,11 +6,11 @@ from collections.abc import Iterator
 from functools import lru_cache
 
 import ckan.plugins.toolkit as tk
-from ckan import model, types
+from ckan import model
 from ckan.plugins import PluginImplementations
 
-from ckanext.syndicate import config
 from ckanext.syndicate.interfaces import ISyndicate
+from ckanext.syndicate.model import SyndicationLog
 from ckanext.syndicate.types import Profile, Topic
 
 PROFILE_PREFIX = "ckanext.syndicate.profile."
@@ -22,9 +22,7 @@ def syndicate_dataset(package_id: str, topic: Topic, profile: Profile):
 
     If you need realtime syndication, use `syndicate_sync` action.
     """
-    tk.enqueue_job(
-        sync_package, [package_id, topic, profile], queue=config.get_queue_name()
-    )
+    tk.enqueue_job(sync_package, [package_id, topic, profile], queue=profile.queue)
 
 
 def sync_all_profiles(foreground: bool = False) -> None:
@@ -70,9 +68,18 @@ def sync_package(package_id: str, action: Topic, profile: Profile) -> None:
         profile.id,
     )
     user = tk.get_action("get_site_user")({"ignore_auth": True}, {})
-    tk.get_action("syndicate_sync")(
+    result = tk.get_action("syndicate_sync")(
         {"user": user["name"]},
         {"id": package_id, "topic": action.name, "profile": profile.id},
+    )
+
+    SyndicationLog.write(
+        local_id=package_id,
+        target_id=result["id"],
+        profile_id=profile.id,
+        state=SyndicationLog.State.FAILED,
+        # error=result.get("message", ""),
+        error="An error occurred during syndication.",
     )
 
 
@@ -122,14 +129,6 @@ def profiles_for(pkg: model.Package) -> Iterator[Profile]:
         yield profile
 
 
-def get_profile_packages(profile_id: str) -> list[types.ActionResult.PackageShow]:
+def get_profile_packages(profile_id: str) -> list[SyndicationLog]:
     """Return a list of packages syndicated for the given profile."""
-    profile = get_profile(profile_id)
-
-    if not profile:
-        log.error("Profile %s not found", profile_id)
-        return []
-
-    return tk.get_action("package_search")(
-        {"user": tk.current_user.name}, {"fq": "extras_syndicate_master_id:*"}
-    )["results"]
+    return SyndicationLog.get_profile_records(profile_id)
