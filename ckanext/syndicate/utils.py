@@ -1,41 +1,20 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import json
 import logging
-import warnings
 from collections import defaultdict
-from itertools import zip_longest
-from typing import Iterable, Iterator, Optional
+from collections.abc import Iterator
+from functools import lru_cache
 
-import ckanapi
-
-import ckan.model as ckan_model
 import ckan.plugins.toolkit as tk
-from ckan.lib.jobs import DEFAULT_QUEUE_NAME
-from ckan.plugins import PluginImplementations, get_plugin
+from ckan import model
+from ckan.plugins import PluginImplementations
 
-from .interfaces import ISyndicate
-from .types import Profile, Topic
+from ckanext.syndicate.interfaces import ISyndicate
+from ckanext.syndicate.model import SyndicationLog
+from ckanext.syndicate.types import Profile, Topic
 
-try:
-    from ckan.exceptions import CkanDeprecationWarning
-except ImportError:
-    CkanDeprecationWarning = DeprecationWarning
-
-
-class SyndicationDeprecationWarning(CkanDeprecationWarning):  # type: ignore
-    pass
-
-
-CONFIG_QUEUE_NAME = "ckanext.syndicate.queue.name"
 PROFILE_PREFIX = "ckanext.syndicate.profile."
 log = logging.getLogger(__name__)
-
-
-def deprecated(msg: str):
-    log.warning(msg)
-    warnings.warn(msg, category=SyndicationDeprecationWarning, stacklevel=3)
 
 
 def syndicate_dataset(package_id: str, topic: Topic, profile: Profile):
@@ -43,68 +22,91 @@ def syndicate_dataset(package_id: str, topic: Topic, profile: Profile):
 
     If you need realtime syndication, use `syndicate_sync` action.
     """
-    import ckanext.syndicate.tasks as tasks
+    tk.enqueue_job(sync_package, [package_id, topic, profile], queue=profile.queue)
 
-    tk.enqueue_job(
-        tasks.sync_package,
-        [package_id, topic, profile],
-        queue=tk.config.get(CONFIG_QUEUE_NAME, DEFAULT_QUEUE_NAME),
+
+def sync_all_profiles(foreground: bool = False) -> None:
+    packages = model.Session.query(model.Package)
+    profiles = list(get_profiles())
+
+    log.info("Syncing %s packages to %s profiles", packages.count(), len(profiles))
+
+    for package in packages:
+        for profile in profiles_for(package):
+            if foreground:
+                sync_package(package.id, Topic.update, profile)
+            else:
+                syndicate_dataset(package.id, Topic.update, profile)
+
+
+def sync_profile(profile_id: str, foreground: bool = False) -> None:
+    profile = get_profile(profile_id)
+
+    if not profile:
+        log.error("Profile %s not found", profile_id)
+        return
+
+    packages = model.Session.query(model.Package)
+
+    log.info("Syncing %s packages to profile %s", packages.count(), profile.id)
+
+    for package in packages:
+        if profile not in profiles_for(package):
+            continue
+
+        if foreground:
+            sync_package(package.id, Topic.update, profile)
+        else:
+            syndicate_dataset(package.id, Topic.update, profile)
+
+
+def sync_package(package_id: str, action: Topic, profile: Profile) -> None:
+    log.info(
+        "Sync package %s, with action %s to the %s",
+        package_id,
+        action.name,
+        profile.id,
+    )
+
+    tk.get_action("syndicate_sync")(
+        {"ignore_auth": True},
+        {"id": package_id, "topic": action.name, "profile": profile.id},
     )
 
 
-def prepare_profile_dict(profile: Profile) -> Profile:
-    return profile
+def get_profiles(force_refresh: bool = False) -> list[Profile]:
+    """Yield all configured syndication profiles."""
+    if force_refresh:
+        _get_profiles_cached.cache_clear()
+    return _get_profiles_cached()
 
 
-def syndicate_configs_from_config(config) -> Iterable[Profile]:
-    yield from _parse_profiles(config)
-
-
-def _parse_profiles(config: dict[str, str]) -> Iterable[Profile]:
+@lru_cache(maxsize=1)
+def _get_profiles_cached() -> list[Profile]:
     profiles = defaultdict(dict)
-    for opt, v in config.items():
+
+    for opt, v in tk.config.items():
         if not opt.startswith(PROFILE_PREFIX):
             continue
+
         profile, attr = opt[len(PROFILE_PREFIX) :].split(".", 1)
         profiles[profile][attr] = v
 
-    for id_, data in profiles.items():
-        try:
-            data["extras"] = json.loads(data.get("extras", "{}"))
-        except (TypeError, ValueError):
-            data["extras"] = {}
-
-        yield Profile(id=id_, **data)
+    return [Profile(id=id_, **data) for id_, data in profiles.items()]
 
 
-def get_profiles() -> Iterator[Profile]:
-    for profile in syndicate_configs_from_config(tk.config):
-        yield prepare_profile_dict(profile)
-
-
-def get_profile(id_: str) -> Optional[Profile]:
+def get_profile(profile_id: str) -> Profile | None:
+    """Get a syndication profile by its ID."""
     for profile in get_profiles():
-        if profile.id == id_:
-            return profile
+        if profile.id != profile_id:
+            continue
+
+        return profile
 
 
-def try_sync(id_):
-    deprecated("Use notify_sync or trigger_sync")
-    notify_sync(id_)
-
-
-def notify_sync(id_):
-    plugin = get_plugin("syndicate")
-
-    pkg = ckan_model.Package.get(id_)
-    if not pkg:
-        return
-    plugin.notify(pkg, "changed")
-
-
-def profiles_for(pkg: ckan_model.Package):
-    implementations = PluginImplementations(ISyndicate)
-    skipper: ISyndicate = next(iter(implementations))
+def profiles_for(pkg: model.Package) -> Iterator[Profile]:
+    """Yield profiles applicable for the given package."""
+    skipper: ISyndicate = next(iter(PluginImplementations(ISyndicate)))
 
     for profile in get_profiles():
         if skipper.skip_syndication(pkg, profile):
@@ -114,22 +116,10 @@ def profiles_for(pkg: ckan_model.Package):
                 pkg.id,
                 profile.id,
             )
+            SyndicationLog.write(
+                local_id=pkg.id,
+                profile_id=profile.id,
+                state=SyndicationLog.State.STOPPED,
+            )
             continue
         yield profile
-
-
-def get_target(url: str, apikey: str | None):
-    """DEPRECATED. Get target CKAN instance."""
-    deprecated(
-        "`utils.get_targetd()` is deprecated since v2.2.2."
-        + " Use Profile.get_target() instead."
-    )
-    ckan = ckanapi.RemoteCKAN(url, apikey=apikey)
-    return ckan
-
-
-def trigger_sync(id: str):
-    package = ckan_model.Package.get(id)
-    for profile in profiles_for(package):
-        log.debug("Syndicate <{}> to {}".format(package.id, profile.ckan_url))
-        syndicate_dataset(package.id, Topic.update, profile)

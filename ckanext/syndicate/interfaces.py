@@ -3,11 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import ckanapi
-from werkzeug.utils import import_string
-
-import ckan.model as model
 import ckan.plugins.toolkit as tk
+from ckan import model
 from ckan.plugins import Interface
 
 from .types import Profile
@@ -28,17 +25,7 @@ class ISyndicate(Interface):
         if package.private:
             return True
 
-        if profile.predicate:
-            predicate = import_string(profile.predicate)
-            if not predicate(package):
-                log.info(
-                    "Dataset[{}] will not syndicate because of predicate[{}]"
-                    " rejection".format(package.id, profile.predicate)
-                )
-                return True
-
-        syndicate = tk.asbool(package.extras.get(profile.flag, "false"))
-        return not syndicate
+        return not tk.asbool(package.extras.get(profile.flag, "false"))
 
     def prepare_package_for_syndication(
         self, package_id: str, data_dict: dict[str, Any], profile: Profile
@@ -46,42 +33,12 @@ class ISyndicate(Interface):
         """Make modifications of the dict that will be sent to remote portal.
 
         Remove all the sensitive fields, normalize package type, etc.
-
         """
         return data_dict
 
-    def prepare_group_for_syndication(
-        self, group_id: str, group: dict[str, Any], profile: Profile
-    ) -> dict[str, Any]:
+    def prepare_group_for_syndication(self, group_id: str, group: dict[str, Any], profile: Profile) -> dict[str, Any]:
         """Make modifications of the dict that will be sent to remote portal.
 
         Remove all the sensitive fields, normalize group/organization type, etc.
-
         """
         return group
-
-    def reattach_on_syndication_error(self, error: Exception) -> bool:
-        """Decide if the remote package should be re-attached during syndication.
-
-        This method called when syndication makes an attempt to create a
-        package, while it already exists on remote portal. Usually it means,
-        that `Profile.field_id` is not properly configured and local package
-        just lost the details about it remote version. So the ID of the remote
-        package must be added to the local package in order to create a
-        relationship between them.
-
-        But this method can also be called if some other error happened during
-        syndication. By default, syndication just checks the error, and if it's
-        an validation error complaining on the `name` field, re-attaching
-        happens. Otherwile, error raised further.
-
-        If the remote portal uses the language different from english, or error
-        messages are customized, default logic fails to identify related
-        package. In such a case you can redefine this method and provide better
-        mechanism for checking errors.
-
-        """
-        if not isinstance(error, ckanapi.ValidationError):
-            return False
-
-        return "That URL is already in use." in error.error_dict.get("name", [])

@@ -1,37 +1,54 @@
 import ckanapi
+import factory
 import pytest
 from pytest_factoryboy import register
 
 from ckan.tests import factories
 
-from ckanext.syndicate import types
+from ckanext.syndicate.types import Profile
 
 
 @pytest.fixture
-def ckan(user, api_token_factory, app, monkeypatch):
-    token = api_token_factory(user=user["name"])
-    ckan = ckanapi.TestAppCKAN(app, token["token"])
-    monkeypatch.setattr(types.Profile, "get_target", lambda *args: ckan)
-    yield ckan
+def clean_db(reset_db, migrate_db_for):
+    reset_db()
+
+    migrate_db_for("syndicate")
 
 
-@register
+@pytest.fixture
+def ckan(sysadmin, app, monkeypatch):
+    ckan = ckanapi.TestAppCKAN(app, sysadmin["token"])
+    monkeypatch.setattr(Profile, "get_target", lambda *args: ckan)
+    return ckan
+
+
 class PackageFactory(factories.Dataset):
+    owner_org = factory.LazyFunction(lambda: OrganizationFactory()["id"])
+
+
+class PackageWithFlagFactory(factories.Dataset):
+    extras = [{"key": "syndicate", "value": "true"}]
+
+
+class UserFactory(factories.UserWithToken):
     pass
 
 
-@register
-class UserFactory(factories.User):
+class SysadminFactory(factories.SysadminWithToken):
     pass
 
 
-@register
 class GroupFactory(factories.Group):
     pass
 
 
 class OrganizationFactory(factories.Organization):
-    pass
+    image_url = ""
 
 
 register(OrganizationFactory, "organization")
+register(UserFactory, "user")
+register(GroupFactory, "group")
+register(PackageFactory, "package")
+register(SysadminFactory, "sysadmin")
+register(PackageWithFlagFactory, "package_with_flag")

@@ -1,0 +1,10 @@
+{% extends "tables/base.html" %}
+
+{% block breadcrumb_content %}
+    <li>
+        <a href="{{ h.url_for('syndicate.dashboard') }}">{{ _('Syndication Dashboard') }}</a>
+    </li>
+    <li class="active">
+        <a href="{{ request.path }}">{{ _(breadcrumb_label) }}</a>
+    </li>
+{% endblock %}

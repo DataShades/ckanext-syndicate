@@ -2,83 +2,33 @@ from __future__ import annotations
 
 import logging
 
-import ckan.model as model
-import ckan.plugins as plugins
+import ckan.plugins as p
 import ckan.plugins.toolkit as tk
-from ckan.model.domain_object import DomainObjectOperation
+from ckan.common import CKANConfig
+from ckan.types import SignalMapping
 
-from . import cli, utils
-from .interfaces import ISyndicate
-from .logic import action, auth
-from .types import Topic
+from ckanext.syndicate.interfaces import ISyndicate
+from ckanext.syndicate.listeners import action_succeeded_listener
 
 log = logging.getLogger(__name__)
 
-CONFIG_SYNC_ON_CHANGES = "ckanext.syndicate.sync_on_changes"
-DEFAULT_SYNC_ON_CHANGES = True
 
+@tk.blanket.blueprints
+@tk.blanket.auth_functions
+@tk.blanket.actions
+@tk.blanket.cli
+@tk.blanket.config_declarations
+class SyndicatePlugin(p.SingletonPlugin):
+    p.implements(p.IConfigurer)
+    p.implements(ISyndicate, inherit=True)
+    p.implements(p.ISignal, inherit=True)
 
-class SyndicatePlugin(plugins.SingletonPlugin):
-    plugins.implements(plugins.IActions)
-    plugins.implements(plugins.IAuthFunctions)
-    plugins.implements(plugins.IDomainObjectModification, inherit=True)
-    plugins.implements(plugins.IClick)
-    plugins.implements(ISyndicate, inherit=True)
-    plugins.implements(plugins.IActions)
-    plugins.implements(plugins.IAuthFunctions)
+    # IConfigurer
 
-    # IActions
+    def update_config(self, config_: CKANConfig) -> None:
+        tk.add_template_directory(config_, "templates")
 
-    def get_actions(self):
-        return action.get_actions()
+    # ISignal
 
-    # IAuthFunctions
-
-    def get_auth_functions(self):
-        return auth.get_auth_functions()
-
-    # IClick
-
-    def get_commands(self):
-        return cli.get_commands()
-
-    # Based on ckanext-webhooks plugin
-    # IDomainObjectNotification & IResourceURLChange
-    def notify(self, entity, operation=None):
-        if not tk.asbool(
-            tk.config.get(CONFIG_SYNC_ON_CHANGES, DEFAULT_SYNC_ON_CHANGES)
-        ):
-            return
-
-        if not operation:
-            # This happens on IResourceURLChange
-            return
-
-        if not isinstance(entity, model.Package):
-            return
-
-        _syndicate_dataset(entity, operation)
-
-
-def _get_topic(operation: str) -> Topic:
-    if operation == DomainObjectOperation.new:
-        return Topic.create
-
-    if operation == DomainObjectOperation.changed:
-        return Topic.update
-
-    return Topic.unknown
-
-
-def _syndicate_dataset(package, operation):
-    topic = _get_topic(operation)
-    if topic is Topic.unknown:
-        log.debug(
-            "Notification topic for operation [%s] is not defined",
-            operation,
-        )
-        return
-
-    for profile in utils.profiles_for(package):
-        log.debug("Syndicate <{}> to {}".format(package.id, profile.ckan_url))
-        utils.syndicate_dataset(package.id, topic, profile)
+    def get_signal_subscriptions(self) -> SignalMapping:
+        return {tk.signals.action_succeeded: [action_succeeded_listener]}

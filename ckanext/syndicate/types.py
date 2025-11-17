@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import dataclasses
 import enum
-from typing import Any
 
 import ckanapi
 
 import ckan.plugins.toolkit as tk
+from ckan.lib.jobs import DEFAULT_QUEUE_NAME
 
 
 class Topic(enum.Enum):
@@ -22,18 +22,15 @@ class Profile:
     api_key: str = ""
     organization: str = ""
     flag: str = "syndicate"
+    # TODO: delete this field in future releases
     field_id: str = "syndicated_id"
     name_prefix: str = ""
     replicate_organization: bool = False
     update_organization: bool = False
     refresh_package_name: bool = False
-    author: str = ""
-
     user_agent: str | None = None
-    predicate: str = ""
-    extras: dict[str, Any] = dataclasses.field(default_factory=dict)
-
     upload_organization_image: bool = True
+    queue: str = DEFAULT_QUEUE_NAME
 
     def __post_init__(self):
         flags = [

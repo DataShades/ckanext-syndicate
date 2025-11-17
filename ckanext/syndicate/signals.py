@@ -1,11 +1,7 @@
-try:
-    import ckan.plugins.toolkit as tk
+import ckan.plugins.toolkit as tk
 
-    ckanext = tk.signals.ckanext
-except AttributeError:
-    from blinker import Namespace
+ckanext = tk.signals.ckanext
 
-    ckanext = Namespace()
 
 before_syndication = ckanext.signal("syndicate:before_syndication")
 """Sent before package syndication happens.
