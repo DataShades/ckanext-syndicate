@@ -1,6 +1,3 @@
-from datetime import datetime as dt
-from datetime import timezone as tz
-
 from flask import Blueprint, Response
 
 import ckan.plugins.toolkit as tk

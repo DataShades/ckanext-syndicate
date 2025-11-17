@@ -25,7 +25,7 @@ def upgrade():
     op.create_table(
         "syndication_log",
         sa.Column("local_id", sa.String(length=255), nullable=False),
-        sa.Column("target_id", sa.String(length=255), nullable=False),
+        sa.Column("target_id", sa.String(length=255), nullable=True),
         sa.Column("profile_id", sa.String(length=255), nullable=False),
         sa.Column("state", sa.String(length=50), nullable=False),
         sa.Column("error", sa.Text(), nullable=True),
@@ -35,7 +35,7 @@ def upgrade():
             ["package.id"],
             ondelete="CASCADE",
         ),
-        sa.PrimaryKeyConstraint("target_id", "profile_id"),
+        sa.PrimaryKeyConstraint("local_id", "profile_id"),
     )
 
     op.create_index(
@@ -72,6 +72,13 @@ def migrate_records_from_extras() -> None:
     )
 
     for profile in profiles:
+        try:
+            field_id = profile.field_id
+        except AttributeError:
+            # Skip profiles without field_id (older profiles)
+            # field_id option is deprecated and will be removed in future releases
+            continue
+
         start = 0
         offset = 1000
 
@@ -79,8 +86,8 @@ def migrate_records_from_extras() -> None:
             packages = tk.get_action("package_search")(
                 {"ignore_auth": True},
                 {
-                    "fq": f"extras_{profile.field_id}:*",
-                    "fl": f"extras_{profile.field_id},id",
+                    "fq": f"extras_{field_id}:*",
+                    "fl": f"extras_{field_id},id",
                     "rows": offset,
                     "start": start,
                 },
@@ -94,7 +101,7 @@ def migrate_records_from_extras() -> None:
             rows = []
 
             for package in packages:
-                if profile.field_id not in package:
+                if field_id not in package:
                     continue
 
                 rows.append(

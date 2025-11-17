@@ -8,8 +8,6 @@ import ckanapi
 import ckan.plugins.toolkit as tk
 from ckan.lib.jobs import DEFAULT_QUEUE_NAME
 
-from ckanext.syndicate import config
-
 
 class Topic(enum.Enum):
     create = enum.auto()
@@ -24,12 +22,12 @@ class Profile:
     api_key: str = ""
     organization: str = ""
     flag: str = "syndicate"
+    # TODO: delete this field in future releases
     field_id: str = "syndicated_id"
     name_prefix: str = ""
     replicate_organization: bool = False
     update_organization: bool = False
     refresh_package_name: bool = False
-    author: str = ""
     user_agent: str | None = None
     upload_organization_image: bool = True
     queue: str = DEFAULT_QUEUE_NAME

@@ -10,20 +10,16 @@ from ckanext.syndicate import model, utils
 class ApiKeyFormatter(t.formatters.BaseFormatter):
     def format(self, value: t.Value, options: t.Options) -> t.FormatterResult:
         if not value:
-            return tk.literal(
-                f'<span class="text-uppercase badge text-bg-danger">{tk._("No API Key Set")}</span>'
-            )
+            return tk.literal(f'<span class="text-uppercase badge text-bg-danger">{tk._("No API Key Set")}</span>')
 
         return tk.literal(f"<code>{value[:4]}************{value[-4:]}</code>")
 
 
-class ExtrasDialogModalFormatter(t.formatters.BaseFormatter):
+class DetailsDialogModalFormatter(t.formatters.BaseFormatter):
     """Formatter to show log details in a modal dialog."""
 
     def format(self, value: t.Value, options: t.Options) -> t.FormatterResult:
-        formatter = t.formatters.DialogModalFormatter(
-            self.column, self.row, self.initial_row, self.table
-        )
+        formatter = t.formatters.DialogModalFormatter(self.column, self.row, self.initial_row, self.table)
 
         options.update({"template": "syndicate/formatters/extras_modal.html"})
 
@@ -32,8 +28,8 @@ class ExtrasDialogModalFormatter(t.formatters.BaseFormatter):
 
 class RemotePortalURLFormatter(t.formatters.BaseFormatter):
     def format(self, value: t.Value, options: t.Options) -> t.FormatterResult:
-        if not value:
-            return ""
+        if value == "-":
+            return value
 
         profile = utils.get_profile(options["profile_id"])
 
@@ -50,12 +46,9 @@ class LocalPortalURLFormatter(t.formatters.BaseFormatter):
         if not value:
             return ""
 
-        local_package = self.row["local_package"]
         local_portal_url = tk.url_for("dataset.read", id=value)
 
-        return tk.literal(
-            f"<a href='{local_portal_url}' target='_blank'>{local_package['title']}</a>"
-        )
+        return tk.literal(f"<a href='{local_portal_url}' target='_blank'>{value}</a>")
 
 
 class StateFormatter(t.formatters.BaseFormatter):
@@ -69,6 +62,4 @@ class StateFormatter(t.formatters.BaseFormatter):
 
         label_type = state_map.get(value, "black")
 
-        return tk.literal(
-            f'<span class="text-uppercase px-2 py-1 badge bg-{label_type}">{value}</span>'
-        )
+        return tk.literal(f'<span class="text-uppercase px-2 py-1 badge bg-{label_type}">{value}</span>')

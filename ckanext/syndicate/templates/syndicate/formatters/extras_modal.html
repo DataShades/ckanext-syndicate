@@ -1,5 +1,5 @@
 <div class="d-flex">
-    <button class="btn btn-light position-absolute end-0 me-3" aria-label="{{ _('View Details') }}"
+    <button class="btn btn-light" aria-label="{{ _('View Details') }}"
         onclick="document.getElementById('{{ modal_id }}').showModal()">
         <i class="fa fa-up-right-from-square"></i>
     </button>
@@ -34,8 +34,8 @@
         </tr>
 
         <tr>
-            <td class="fw-bold align-top">field_id</td>
-            <td> {{ _("The custom field ID where the remote dataset ID is stored") }}</td>
+            <td class="fw-bold align-top">field_id <span class="text-danger">{{ _("Deprecated") }}</span></td>
+            <td>{{ _("The custom field ID where the remote dataset ID is stored") }}</td>
             <td>
                 {{ value.field_id }}
             </td>
@@ -98,14 +98,12 @@
         </tr>
 
         <tr>
-            <td class="fw-bold align-top">author</td>
-            <td> {{ _("The author of the dataset on the remote portal") }}</td>
+            <td class="fw-bold align-top">queue</td>
+            <td> {{ _("The queue to use for syndication tasks") }}</td>
             <td>
-                {{ value.author }}
+                {{ value.queue }}
             </td>
-
         </tr>
-
     </table>
 
     <div class="d-flex justify-content-end">

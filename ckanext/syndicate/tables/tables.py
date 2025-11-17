@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from typing import cast
-
 import ckan.plugins.toolkit as tk
+from ckan import model
 
 import ckanext.tables.shared as t
 
@@ -13,7 +12,7 @@ from ckanext.syndicate.tables.data_sources import (
 )
 from ckanext.syndicate.tables.formatters import (
     ApiKeyFormatter,
-    ExtrasDialogModalFormatter,
+    DetailsDialogModalFormatter,
     LocalPortalURLFormatter,
     RemotePortalURLFormatter,
     StateFormatter,
@@ -43,11 +42,10 @@ class DashboardTable(t.TableDefinition):
                     width=160,
                 ),
                 t.ColumnDefinition(field="organization"),
-                t.ColumnDefinition(field="author"),
                 t.ColumnDefinition(
                     field="details",
                     title="Details",
-                    formatters=[(ExtrasDialogModalFormatter, {})],
+                    formatters=[(DetailsDialogModalFormatter, {})],
                     tabulator_formatter="html",
                     width=100,
                     resizable=False,
@@ -71,25 +69,11 @@ class DashboardTable(t.TableDefinition):
                     with_confirmation=True,
                 ),
                 t.RowActionDefinition(
-                    action="search_packages",
-                    label=tk._("Search packages"),
-                    callback=lambda row: t.ActionHandlerResult(
-                        success=True,
-                        error=None,
-                        redirect=tk.url_for(
-                            "dataset.search", q=f"extras_{row['field_id']}:*"
-                        ),
-                    ),
-                    icon="fa fa-search",
-                ),
-                t.RowActionDefinition(
                     action="view_logs",
                     label=tk._("View logs"),
                     callback=lambda row: t.ActionHandlerResult(
                         success=True,
-                        redirect=tk.url_for(
-                            "syndicate.profile_logs", profile_id=row["id"]
-                        ),
+                        redirect=tk.url_for("syndicate.profile_logs", profile_id=row["id"]),
                     ),
                     icon="fa fa-list",
                 ),
@@ -110,9 +94,7 @@ class DashboardTable(t.TableDefinition):
         profile = utils.get_profile(row["id"])
 
         if not profile:
-            return t.ActionHandlerResult(
-                success=False, error=tk._("Profile not found.")
-            )
+            return t.ActionHandlerResult(success=False, error=tk._("Profile not found."))
 
         utils.sync_profile(profile.id)
 
@@ -133,12 +115,18 @@ class ProfileLogsTable(t.TableDefinition):
             table_template="syndicate/profile_logs_base.html",
             columns=[
                 t.ColumnDefinition(
+                    field="pkg_title",
+                    title="Title",
+                    sortable=False,
+                    tooltip=True,
+                ),
+                t.ColumnDefinition(
                     field="local_id",
-                    title="Local Package ID",
+                    title="ID",
                     sortable=False,
                     formatters=[(LocalPortalURLFormatter, {"profile_id": profile_id})],
                     tabulator_formatter="html",
-                    width=300,
+                    width=200,
                 ),
                 t.ColumnDefinition(
                     field="target_id",
@@ -146,17 +134,17 @@ class ProfileLogsTable(t.TableDefinition):
                     sortable=False,
                     formatters=[(RemotePortalURLFormatter, {"profile_id": profile_id})],
                     tabulator_formatter="html",
-                    width=300,
+                    width=200,
                 ),
                 t.ColumnDefinition(
                     field="state",
-                    width=100,
+                    width=85,
                     resizable=False,
                     sortable=False,
                     formatters=[(StateFormatter, {})],
                     tabulator_formatter="html",
                 ),
-                t.ColumnDefinition(field="error"),
+                t.ColumnDefinition(field="error", tooltip=True, sortable=False),
                 t.ColumnDefinition(
                     field="timestamp",
                     title="Timestamp",
@@ -186,9 +174,15 @@ class ProfileLogsTable(t.TableDefinition):
         )
 
     def row_action_resyndicate_package(self, row: t.Row) -> t.ActionHandlerResult:
-        profile = cast(utils.Profile, utils.get_profile(self.profile_id))
+        package = model.Package.get(row["pkg_id"])
 
-        utils.sync_package(row["local_package"]["id"], Topic.update, profile)
+        if package:
+            # we call it to trigger a skip check
+            pkg_profiles = utils.profiles_for(package)
+            profile = next((p for p in pkg_profiles if p.id == self.profile_id), None)
+
+            if profile:
+                utils.sync_package(row["pkg_id"], Topic.update, profile)
 
         return t.ActionHandlerResult(
             success=True,
@@ -196,13 +190,19 @@ class ProfileLogsTable(t.TableDefinition):
             message=tk._("Package has been resyndicated."),
         )
 
-    def bulk_action_resyndicate_package(
-        self, rows: list[t.Row]
-    ) -> t.ActionHandlerResult:
-        profile = cast(utils.Profile, utils.get_profile(self.profile_id))
-
+    def bulk_action_resyndicate_package(self, rows: list[t.Row]) -> t.ActionHandlerResult:
         for row in rows:
-            utils.syndicate_dataset(row["local_package"]["id"], Topic.update, profile)
+            package = model.Package.get(row["pkg_id"])
+
+            if not package:
+                continue
+
+            # we call it to trigger a skip check
+            pkg_profiles = utils.profiles_for(package)
+            profile = next((p for p in pkg_profiles if p.id == self.profile_id), None)
+
+            if profile:
+                utils.syndicate_dataset(row["pkg_id"], Topic.update, profile)
 
         return t.ActionHandlerResult(
             success=True,

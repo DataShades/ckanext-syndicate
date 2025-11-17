@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.engine.row import RowMapping
 
 from ckan import model
 
@@ -25,8 +23,6 @@ class ProfilesDataSource(t.ListDataSource):
                 "ckan_url": profile.ckan_url,
                 "api_key": profile.api_key,
                 "organization": profile.organization,
-                "author": profile.author,
-                "field_id": profile.field_id,
                 "details": self._clear_sensetive_data(asdict(profile)),
             }
             for profile in utils.get_profiles()
@@ -37,6 +33,7 @@ class ProfilesDataSource(t.ListDataSource):
             data["api_key"] = f"****{data['api_key'][-4:]}"
 
         return data
+
 
 class ProfileLogsDataSource(t.DatabaseDataSource):
     def __init__(self, profile_id: str):
@@ -53,17 +50,5 @@ class ProfileLogsDataSource(t.DatabaseDataSource):
             )
             .join(model.Package, SyndicationLog.local_id == model.Package.id)
             .filter(SyndicationLog.profile_id == profile_id)
-            .order_by(SyndicationLog.timestamp.desc()),
-            model=SyndicationLog,
+            .order_by(SyndicationLog.timestamp.desc())
         )
-
-    def serialize_row(self, row: RowMapping) -> dict[str, Any]:
-        data = dict(row)
-
-        # Extra data for the formatters
-        data["local_package"] = {
-            "id": data.pop("pkg_id", None),
-            "title": data.pop("pkg_title", None),
-        }
-
-        return data

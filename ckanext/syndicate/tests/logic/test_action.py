@@ -1,9 +1,9 @@
 import ckanapi
 import pytest
 
-import ckan.plugins.toolkit as tk
 from ckan.tests.helpers import call_action
 
+from ckanext.syndicate.model import SyndicationLog
 from ckanext.syndicate.utils import get_profiles
 
 
@@ -16,7 +16,7 @@ def remote_org(organization_factory, user, monkeypatch, ckan_config):
     return org
 
 
-@pytest.mark.usefixtures("clean_db", "ckan")
+@pytest.mark.usefixtures("with_plugins", "clean_db", "ckan")
 @pytest.mark.ckan_config("ckanext.syndicate.profile.test.name_prefix", "test")
 class TestPrepare:
     def test_prepare_default(self, package, remote_org, sysadmin):
@@ -42,16 +42,16 @@ class TestPrepare:
         assert prepared["prepared"] == expected
 
 
-@pytest.mark.usefixtures("with_plugins", "clean_db", "ckan")
+@pytest.mark.usefixtures("with_plugins", "clean_index", "clean_db", "ckan")
 @pytest.mark.ckan_config("ckanext.syndicate.profile.test.name_prefix", "test")
 class TestSync:
     def test_create_package(self, create_with_upload, package_factory, remote_org, sysadmin):
-        dataset = package_factory(
-            extras=[{"key": "syndicate", "value": "true"}],
-        )
+        dataset = package_factory()
         profile = get_profiles(force_refresh=True)[0]
-        syndicated_id = tk.h.get_pkg_dict_extra(dataset, "syndicated_id")
-        assert syndicated_id is None
+
+        syndicate_log = SyndicationLog.get(dataset["id"], profile.id)
+        assert syndicate_log is not None
+        assert syndicate_log.state == SyndicationLog.State.STOPPED
 
         create_with_upload("test", "test_file.txt", package_id=dataset["id"])
         create_with_upload("test", "test_file1.txt", package_id=dataset["id"])
@@ -66,8 +66,11 @@ class TestSync:
 
         # Reload our local package, to read the syndicated ID
         source = call_action("package_show", id=dataset["id"])
-        syndicated_id = tk.h.get_pkg_dict_extra(source, "syndicated_id")
-        assert syndicated_id is not None
+        syndicate_log = SyndicationLog.get(source["id"], profile.id)
+
+        assert syndicate_log is not None
+
+        syndicated_id = syndicate_log.target_id
 
         # Expect a new package to be created
         syndicated = call_action("package_show", id=syndicated_id)
@@ -88,12 +91,8 @@ class TestSync:
         profile = get_profiles(force_refresh=True)[0]
 
         # Create the local syndicated dataset, pointing to the dummy remote
-        dataset = package_factory(
-            extras=[
-                {"key": "syndicate", "value": "true"},
-                {"key": "syndicated_id", "value": syndicated_id},
-            ]
-        )
+        dataset = package_factory()
+        SyndicationLog.write(local_id=dataset["id"], target_id=syndicated_id, profile_id=profile.id)
         local_resource = create_with_upload("test", "test_file.txt", package_id=dataset["id"])
 
         call_action(
@@ -117,14 +116,11 @@ class TestSync:
 
     def test_syndicate_existing_package_with_stale_syndicated_id(self, package_factory):
         profile = get_profiles(force_refresh=True)[0]
-        stale = package_factory(
-            extras=[
-                {"key": "syndicate", "value": "true"},
-                {
-                    "key": "syndicated_id",
-                    "value": "87f7a229-46d0-4171-bfb6-048c622adcdc",
-                },
-            ]
+        stale = package_factory()
+        SyndicationLog.write(
+            local_id=stale["id"],
+            target_id="87f7a229-46d0-4171-bfb6-048c622adcdc",
+            profile_id=profile.id,
         )
 
         call_action(
@@ -135,7 +131,9 @@ class TestSync:
         )
 
         updated = call_action("package_show", id=stale["id"])
-        syndicated = call_action("package_show", id=tk.h.get_pkg_dict_extra(updated, "syndicated_id"))
+        syndicate_log = SyndicationLog.get(updated["id"], profile.id)
+        assert syndicate_log is not None
+        syndicated = call_action("package_show", id=syndicate_log.local_id)
         assert syndicated["notes"] == updated["notes"]
 
     @pytest.mark.ckan_config("ckanext.syndicate.profile.test.replicate_organization", "yes")
@@ -143,7 +141,6 @@ class TestSync:
         local_org = organization_factory(users=[{"capacity": "editor", "name": user["id"]}])
         dataset = package_factory(
             owner_org=local_org["id"],
-            extras=[{"key": "syndicate", "value": "true"}],
         )
         profile = get_profiles(force_refresh=True)[0]
 
@@ -176,10 +173,7 @@ class TestSync:
         we're updating organization
         """
         local_org = organization_factory(users=[{"capacity": "editor", "name": sysadmin["id"]}])
-        dataset = package_factory(
-            owner_org=local_org["id"],
-            extras=[{"key": "syndicate", "value": "true"}],
-        )
+        dataset = package_factory(owner_org=local_org["id"])
         profile = get_profiles(force_refresh=True)[0]
 
         mock_org_create = mocker.Mock()
@@ -220,17 +214,14 @@ class TestSync:
 
     @pytest.mark.ckan_config("ckanext.syndicate.profile.test.replicate_organization", "true")
     @pytest.mark.ckan_config("ckanext.syndicate.profile.test.update_organization", "false")
-    def test_organization_update_false(self, ckan, user, organization_factory, package_factory, mocker):
+    def test_organization_update_false(self, ckan, user, organization_factory, package_with_flag_factory, mocker):
         """Test organization update behavior.
 
         If ckanext.syndicate.profile.test.update_organization set to false,
         we're not updating organization
         """
         local_org = organization_factory(users=[{"capacity": "editor", "name": user["id"]}])
-        dataset = package_factory(
-            owner_org=local_org["id"],
-            extras=[{"key": "syndicate", "value": "true"}],
-        )
+        dataset = package_with_flag_factory(owner_org=local_org["id"])
         profile = get_profiles(force_refresh=True)[0]
 
         mock_org_create = mocker.Mock()
@@ -269,39 +260,3 @@ class TestSync:
         )
 
         assert not mock_org_update.called
-
-    @pytest.mark.ckan_config("ckanext.syndicate.profile.test.name_prefix", "test")
-    def test_author_check(self, user, ckan, monkeypatch, ckan_config, package_factory, mocker):
-        monkeypatch.setitem(ckan_config, "ckanext.syndicate.profile.test.author", user["name"])
-
-        dataset = package_factory(extras=[{"key": "syndicate", "value": "true"}])
-
-        mock_user_show = mocker.Mock()
-        mock_user_show.return_value = user
-
-        ckan.action.user_show = mock_user_show
-        profile = get_profiles(force_refresh=True)[0]
-
-        call_action(
-            "syndicate_sync",
-            id=dataset["id"],
-            topic="create",
-            profile=profile.id,
-        )
-        call_action(
-            "package_patch",
-            id=dataset["id"],
-            extras=[{"key": "syndicate", "value": "true"}],
-        )
-
-        call_action(
-            "syndicate_sync",
-            id=dataset["id"],
-            topic="update",
-            profile=profile.id,
-        )
-
-        mock_user_show.assert_called_once_with(id=user["name"])
-        # TODO: extras are going to be reworked
-        # updated = call_action("package_show", id=dataset["id"])
-        # assert tk.h.get_pkg_dict_extra(updated, "syndicated_id") is not None

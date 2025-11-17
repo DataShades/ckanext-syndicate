@@ -67,19 +67,10 @@ def sync_package(package_id: str, action: Topic, profile: Profile) -> None:
         action.name,
         profile.id,
     )
-    user = tk.get_action("get_site_user")({"ignore_auth": True}, {})
-    result = tk.get_action("syndicate_sync")(
-        {"user": user["name"]},
-        {"id": package_id, "topic": action.name, "profile": profile.id},
-    )
 
-    SyndicationLog.write(
-        local_id=package_id,
-        target_id=result["id"],
-        profile_id=profile.id,
-        state=SyndicationLog.State.FAILED,
-        # error=result.get("message", ""),
-        error="An error occurred during syndication.",
+    tk.get_action("syndicate_sync")(
+        {"ignore_auth": True},
+        {"id": package_id, "topic": action.name, "profile": profile.id},
     )
 
 
@@ -125,10 +116,10 @@ def profiles_for(pkg: model.Package) -> Iterator[Profile]:
                 pkg.id,
                 profile.id,
             )
+            SyndicationLog.write(
+                local_id=pkg.id,
+                profile_id=profile.id,
+                state=SyndicationLog.State.STOPPED,
+            )
             continue
         yield profile
-
-
-def get_profile_packages(profile_id: str) -> list[SyndicationLog]:
-    """Return a list of packages syndicated for the given profile."""
-    return SyndicationLog.get_profile_records(profile_id)

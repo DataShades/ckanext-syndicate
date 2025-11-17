@@ -89,13 +89,13 @@ to replace `PROFILE_ID` with any identifier you like.
 | `PREFIX.author`                      | `None`          | `ricardomm`                           | The username whose API key is used. If a dataset already exists on the target CKAN, it will only be updated if its creator matches this username. |
 | `PREFIX.user_agent`                  | `None`          | `My CKAN Syndicator/1.0`              | Custom User-Agent string to use for HTTP requests to the target CKAN instance.                                                                    |
 | `PREFIX.upload_organization_image`   | `true`          | `false`                               | Whether to upload organization image when replicating organization.                                                                               |
+| `PREFIX.queue`                       | `default`       | `syndication`                         | The name of the background jobs queue used for syndication tasks for this profile.                                                              |
 
 In addition, the following config options control behavior of syndication process in general:
 
 | **Option**                          | **Default** | **Description**                                                                                                                                              |
 | ----------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `ckanext.syndicate.sync_on_changes` | `true`      | Whether to automatically syndicate datasets whenever they are created, updated, or deleted. Disable this option if syndication should be triggered manually. |
-| `ckanext.syndicate.queue.name`      | `default`   | The name of the background jobs queue used for syndication tasks.                                                                                            |
 
 
 ## Extending
@@ -124,7 +124,7 @@ def after_syndication_listener(package_id, **kwargs):
 
 ### Interface
 
-Changes to syndication workflow are made via `ckanext.syndicate.interfaces.ISyndicate` interface. At moment, it contains two methods:
+Changes to syndication workflow are made via `ckanext.syndicate.interfaces.ISyndicate` interface. At moment, it contains next methods:
 
 * `skip_syndication` - decide, whether syndication must be performed for the
   given profile.
@@ -133,7 +133,6 @@ Changes to syndication workflow are made via `ckanext.syndicate.interfaces.ISynd
   syndicating to, is using a different metadata schema.
 * `prepare_group_for_syndication` - update the group, before it sent to
   the remote portal.
-* `reattach_on_syndication_error` - determines whether the local dataset should be reattached to an existing remote package when a syndication attempt fails due to the package already existing on the target CKAN instance.
 
 Basic implementations look like this:
 
@@ -157,20 +156,12 @@ class MyPlugin(plugins.Plugin):
     ) -> dict[str, Any]:
         data_dict.pop("sensitive_field")
         return group
-
-    def reattach_on_syndication_error(self, error: Exception) -> bool:
-        if not isinstance(error, ckanapi.ValidationError):
-            return False
-
-        return "That URL is already in use." in error.error_dict.get("name", [])
 ```
 
 Default implementation of `skip_syndication` prevents syndication for:
 
 * private datasets
 * datasets with the falsy value of the field, specified by `ckanext.syndicate.profile.PROFILE_ID.flag` config option (`syndicate` by default)
-
-Default implementation of `reattach_on_syndication_error` returns `True` if the error is a `ckanapi.ValidationError` caused by an existing package with the same name on the target CKAN instance.
 
 ## CLI commands
 
@@ -182,6 +173,13 @@ ckan syndicate sync [ID]
 Syndication provides that will be applied to the given datasets in case of syndication:
 ```sh
 ckan syndicate check [ID]
+```
+
+An individual profile synchronization can be triggered as well from the command line:
+
+```sh
+ckan syndicate sync-profile [PROFILE_ID]
+ckan syndicate sync-profile [PROFILE_ID] -f # foreground
 ```
 
 ## Tests
