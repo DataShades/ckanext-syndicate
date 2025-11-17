@@ -3,10 +3,11 @@
 {% block header_account_logged %}
     {% if g.userobj.sysadmin %}
         <li>
-            <a href="{{ h.url_for('syndicate.dashboard') }}">
+            <a href="{{ h.url_for('syndicate.dashboard') }}" title="{{ _('Syndication Dashboard')}}">
                 <i class="fa fa-broadcast-tower" aria-hidden="true"></i>
             </a>
         </li>
+
     {% endif %}
 
     {{ super() }}
