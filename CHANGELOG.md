@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.0.0](https://github.com/DataShades/ckanext-syndicate/compare/v2.2.2...v3.0.0) (2025-11-17)
+
+### ⚠ BREAKING CHANGES
+
+* Config options changes:
+  * `ckanext.syndicate.profile.<PROFILE>.author` dropped
+  * `ckanext.syndicate.profile.<PROFILE>.queue` added
+  * `ckanext.syndicate.profile.<PROFILE>.field_id` deprecated
+  * `ckanext.syndicate.queue.name` dropped in favour of profile specific queue config
+* Removed helpers:
+  * `organization_owns_dataset`
+  * `organization_not_owns_dataset`
+* Removed interface methods:
+  * `reattach_on_syndication_error`
+* Deleted utils:
+  * `try_sync`
+  * `get_target`
+  * `trigger_sync`
+* Requirements updated:
+  * Python >= 3.10
+  * CKAN >= 2.10
+* Previously deprecated actions removed:
+  * `before_syndication_action`
+  * `after_syndication_action`
+  * `update_dataset_for_syndication`
+
+### Features
+
+* Add profile list dashboard and profile logs dashboard
+* Add `SyndicationLog` model to track syndication attempts
+* Refactored code, applied ruff fixess and removed redundant parts
+* Dropped unused table `syndicate_config`
+* Added config declaration for non-profile config options
+* Improved test workflow
+* Updated and rewrote README
+
 ### [2.2.2](https://github.com/DataShades/ckanext-syndicate/compare/v2.2.1...v2.2.2) (2023-05-31)
 
 
