@@ -43,7 +43,7 @@ class SyndicationLog(tk.BaseModel):
     timestamp: Mapped[dt] = Column(DateTime(timezone=True), default=lambda: dt.now(tz=tz.utc), nullable=False)  # type: ignore
 
     local_package: Mapped[model.Package] = relationship(  # type: ignore
-        "Package", backref="syndication_logs"
+        "Package", passive_deletes=True
     )
 
     @classmethod

@@ -12,14 +12,10 @@ log = logging.getLogger(__name__)
 
 
 def action_succeeded_listener(sender: str, **kwargs: Any) -> None:
-    """Listener for action_succeeded signal.
+    """Handle the `action_succeeded` signal.
 
     Track package create and update actions to trigger syndication
-    'on change' if enabled in config.
-
-    Args:
-        sender (str): The name of the action that succeeded.
-        **kwargs: Additional keyword arguments containing action details and result.
+    on package create/update if enabled in config.
     """
     if sender not in ("package_create", "package_update") or not config.get_sync_on_changes():
         return

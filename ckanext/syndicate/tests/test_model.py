@@ -2,6 +2,8 @@ from typing import Any
 
 import pytest
 
+from ckan.tests.helpers import call_action
+
 from ckanext.syndicate.model import SyndicationLog
 
 TEST_PROFILE = "test"
@@ -58,3 +60,10 @@ class TestSyndicationLogModel:
         assert log is not None
         assert log.local_package is not None
         assert log.local_package.id == package["id"]
+
+    def test_cascade_delete(self, package: dict[str, Any]):
+        assert SyndicationLog.get(package["id"], TEST_PROFILE)
+
+        call_action("dataset_purge", id=package["id"])
+
+        assert SyndicationLog.get(package["id"], TEST_PROFILE) is None

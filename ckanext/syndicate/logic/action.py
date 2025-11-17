@@ -49,6 +49,44 @@ class SyncResult(TypedDict):
 def syndicate_sync(context: ckan_types.Context, data_dict: SyncData) -> SyncResult:
     tk.check_access("syndicate_sync", context, data_dict)  # type: ignore
 
+    local_id = data_dict["id"]
+    profile_id = data_dict["profile"].id
+    sync_result = SyncResult(
+        local_id=local_id,
+        target_id="",
+        error=None,
+        state=SyndicationLog.State.SYNCED,
+    )
+
+    try:
+        result = _syndicate_sync_internal(context, data_dict)
+    except Exception as e:  # noqa: BLE001
+        log.exception("Syndication failed for package %s to profile %s", local_id, profile_id)
+
+        error_msg = str(e)
+
+        SyndicationLog.write(
+            local_id=local_id,
+            profile_id=profile_id,
+            state=SyndicationLog.State.FAILED,
+            error=error_msg,
+        )
+
+        sync_result["error"] = error_msg
+        sync_result["state"] = SyndicationLog.State.FAILED
+
+        return sync_result
+
+    SyndicationLog.write(local_id=local_id, target_id=result["id"], profile_id=profile_id)
+
+    sync_result["target_id"] = result["id"]
+
+    return sync_result
+
+
+def _syndicate_sync_internal(context: ckan_types.Context, data_dict: SyncData) -> dict[str, Any]:
+    tk.check_access("syndicate_sync", context, data_dict)  # type: ignore
+
     details = tk.get_action("syndicate_prepare")(
         context,
         {
@@ -64,40 +102,14 @@ def syndicate_sync(context: ckan_types.Context, data_dict: SyncData) -> SyncResu
     result = None
     topic = types.Topic[details["topic"]]
 
-    try:
-        if topic is types.Topic.create:
-            result = ckan.action.package_create(**details["prepared"])
-        else:
-            result = ckan.action.package_update(**details["prepared"])
-    except Exception as e:  # noqa: BLE001
-        SyndicationLog.write(
-            local_id=data_dict["id"],
-            profile_id=data_dict["profile"].id,
-            state=SyndicationLog.State.FAILED,
-            error=str(e),
-        )
-
-        return SyncResult(
-            local_id=data_dict["id"],
-            target_id="",
-            error=str(e),
-            state=SyndicationLog.State.FAILED,
-        )
+    if topic is types.Topic.create:
+        result = ckan.action.package_create(**details["prepared"])
+    else:
+        result = ckan.action.package_update(**details["prepared"])
 
     signals.after_syndication.send(data_dict["id"], profile=data_dict["profile"], remote=result)
 
-    SyndicationLog.write(
-        local_id=data_dict["id"],
-        target_id=result["id"],
-        profile_id=data_dict["profile"].id,
-    )
-
-    return SyncResult(
-        local_id=data_dict["id"],
-        target_id=result["id"],
-        error=None,
-        state=SyndicationLog.State.SYNCED,
-    )
+    return result
 
 
 @validate(schema.syndicate_prepare)  # type: ignore
@@ -242,6 +254,8 @@ def _compute_base_data_and_topic(
 
         try:
             remote_package = ckan.action.package_show(id=syndicate_record.target_id)
+        except ckanapi.CKANAPIError:
+            raise ckanapi.NotFound("The remote portal is unavailable")  # noqa: B904
         except ckanapi.NotFound:
             return _compute_base_data_and_topic(package, types.Topic.create, profile, ckan)
 
