@@ -7,9 +7,10 @@ All notable changes to this project will be documented in this file. See [standa
 ### ⚠ BREAKING CHANGES
 
 * Config options changes:
-  * `ckanext.syndicate.profile.<PROFILE>.author` dropped
-  * `ckanext.syndicate.profile.<PROFILE>.queue` added
-  * `ckanext.syndicate.profile.<PROFILE>.field_id` deprecated
+  * `ckan.plugins` now requires adding `tables` alongside `syndicate` for everything to work properly.
+  * `ckanext.syndicate.profile.<PROFILE>.author` is dropped
+  * `ckanext.syndicate.profile.<PROFILE>.queue` is added
+  * `ckanext.syndicate.profile.<PROFILE>.field_id` is deprecated, but should remain for a database migration period.
   * `ckanext.syndicate.queue.name` dropped in favour of profile specific queue config
 * Removed helpers:
   * `organization_owns_dataset`
