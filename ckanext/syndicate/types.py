@@ -32,6 +32,9 @@ class Profile:
     upload_organization_image: bool = True
     queue: str = DEFAULT_QUEUE_NAME
 
+    # TODO: deletee this field in future releases
+    author: str = ""
+
     def __post_init__(self):
         flags = [
             "replicate_organization",

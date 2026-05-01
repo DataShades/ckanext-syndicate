@@ -82,7 +82,9 @@ pythonVersion = "3.10"
 include = ["ckanext"]
 exclude = ["**/test*", "**/migration"]
 strict = []
-
+extraPaths = [
+            "../ckan",
+]
 strictParameterNoneValue = true
 
 # Check the meaning of rules here

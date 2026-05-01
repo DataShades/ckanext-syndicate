@@ -109,12 +109,13 @@ def profiles_for(pkg: model.Package) -> Iterator[Profile]:
     skipper: ISyndicate = next(iter(PluginImplementations(ISyndicate)))
 
     for profile in get_profiles():
-        if skipper.skip_syndication(pkg, profile):
+        if reason := skipper.skip_syndication(pkg, profile):
             log.debug(
-                "Plugin %s decided to skip syndication of %s for profile %s",
+                "Plugin %s decided to skip syndication of %s for profile %s: %s",
                 skipper.name,
                 pkg.id,
                 profile.id,
+                reason,
             )
             SyndicationLog.write(
                 local_id=pkg.id,
