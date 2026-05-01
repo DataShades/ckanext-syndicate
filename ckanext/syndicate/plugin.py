@@ -8,7 +8,7 @@ from ckan.common import CKANConfig
 from ckan.types import SignalMapping
 
 from ckanext.syndicate.interfaces import ISyndicate
-from ckanext.syndicate.listeners import action_succeeded_listener
+from ckanext.syndicate.listeners import member_modification, package_modification
 
 log = logging.getLogger(__name__)
 
@@ -31,4 +31,18 @@ class SyndicatePlugin(p.SingletonPlugin):
     # ISignal
 
     def get_signal_subscriptions(self) -> SignalMapping:
-        return {tk.signals.action_succeeded: [action_succeeded_listener]}
+        return {
+            tk.signals.action_succeeded: [
+                {"receiver": member_modification, "sender": "member_create"},
+                {"receiver": member_modification, "sender": "member_delete"},
+                {"receiver": package_modification, "sender": "package_create"},
+                {
+                    "receiver": package_modification,
+                    "sender": "package_update",
+                },
+                {
+                    "receiver": package_modification,
+                    "sender": "package_delete",
+                },
+            ]
+        }

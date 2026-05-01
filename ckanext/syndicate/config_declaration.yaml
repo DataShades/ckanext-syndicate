@@ -5,8 +5,16 @@ groups:
       - key: ckanext.syndicate.sync_on_changes
         type: bool
         default: true
-        required: true
+        editable: true
         description: Enable synchronization on change
+
+      - key: ckanext.syndicate.sync_on_member_changes
+        type: bool
+        default: true
+        editable: true
+        description: |
+          Enable synchronization on membership change, i.e. when dataset is
+          added to/removed from the group.
 
       - key: ckanext.syndicate.queue.name
         default: default
