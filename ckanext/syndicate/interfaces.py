@@ -7,6 +7,7 @@ import ckan.plugins.toolkit as tk
 from ckan import model
 from ckan.plugins import Interface
 
+from .model import SyndicationLog
 from .types import Profile
 
 log = logging.getLogger(__name__)
@@ -26,6 +27,11 @@ class ISyndicate(Interface):
         """
         if package.private:
             return "package is private"
+
+        if package.state == "deleted":
+            if SyndicationLog.get(package.id, profile.id) is None:
+                return "deleted package was never syndicated"
+            return False
 
         if not tk.asbool(package.extras.get(profile.flag, "false")):
             return "syndication flag disabled on package"

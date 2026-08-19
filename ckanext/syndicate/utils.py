@@ -121,6 +121,7 @@ def profiles_for(pkg: model.Package) -> Iterator[Profile]:
                 local_id=pkg.id,
                 profile_id=profile.id,
                 state=SyndicationLog.State.STOPPED,
+                defer_commit=True,
             )
             continue
         yield profile

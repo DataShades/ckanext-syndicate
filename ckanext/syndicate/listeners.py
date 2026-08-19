@@ -33,6 +33,8 @@ def package_modification(sender: str, **kwargs: Any) -> None:
         log.debug("Syndicate on change triggered for <%s> to %s", package.id, profile.ckan_url)
         utils.syndicate_dataset(package.id, topic, profile)
 
+    model.Session.commit()
+
 
 def member_modification(sender: str, **kwargs: Any) -> None:
     """Handle the `action_succeeded` signal from member modifications.
@@ -57,3 +59,5 @@ def member_modification(sender: str, **kwargs: Any) -> None:
     for profile in utils.profiles_for(package):
         log.debug("Syndicate on member change triggered for <%s> to %s", package.id, profile.ckan_url)
         utils.syndicate_dataset(package.id, topic, profile)
+
+    model.Session.commit()

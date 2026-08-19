@@ -47,7 +47,7 @@ class SyndicationLog(tk.BaseModel):
     )
 
     @classmethod
-    def write(  # noqa: PLR0913
+    def write(  # noqa: PLR0913 PLR0917
         cls,
         local_id: str,
         profile_id: str,

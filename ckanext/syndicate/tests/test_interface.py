@@ -45,7 +45,7 @@ class TestSyndicatePlugin(p.SingletonPlugin):
 class TestInterface:
     def test_custom_skip_logic(self, syndicate, package_factory: Callable[..., dict[str, Any]], mocker):
         package_factory(extras=[{"key": "skip_me", "value": "True"}])
-        syndicate.not_called()
+        syndicate.assert_not_called()
 
     def test_custom_prepare_logic(self, package: dict[str, Any], mocker):
         profile = cast(Profile, utils.get_profile(TEST_PROFILE))

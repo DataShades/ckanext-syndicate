@@ -24,7 +24,7 @@ class TestSyndicateOnPackageChangeListener:
         dataset = package_factory(extras=[{"key": "syndicate", "value": "True"}])
         syndicate.reset_mock()
 
-        call_action("package_update", id=dataset["id"], name="updated-name")
+        call_action("package_patch", id=dataset["id"], name="updated-name")
         syndicate.assert_called_with(dataset["id"], Topic.update, mocker.ANY)
 
     def test_syndicate_on_delete(self, syndicate, package_factory: Callable[..., dict[str, Any]]):
