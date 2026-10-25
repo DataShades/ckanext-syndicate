@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+import mimetypes
 import uuid
 from typing import Any
+from urllib.parse import urlparse
 
 import ckanapi
 import requests
@@ -223,11 +225,26 @@ def prepare_group_data(local_id: str, group: dict[str, Any], profile: types.Prof
         group.pop(field, None)
 
     if profile.upload_organization_image:
-        group.pop("image_url", None)
+        stored_name = group.pop("image_url", None) or ""
         default_img_url = "https://www.gravatar.com/avatar/123?s=400&d=identicon"
         image_url = group.pop("image_display_url") or default_img_url
-        image_fd = requests.get(image_url, stream=True, timeout=2).raw
-        group.update(image_upload=image_fd)
+        if image_url.startswith("/"):
+            image_url = tk.config["ckan.site_url"].rstrip("/") + image_url
+
+        response = requests.get(image_url, stream=True, timeout=2)
+        response.raise_for_status()
+        if stored_name and not stored_name.startswith("http"):
+            filename = stored_name
+        else:
+            filename = urlparse(image_url).path.rsplit("/", 1)[-1] or "image.png"
+
+        # Same source remote verify_type uses: MIME from filename extension.
+        content_type = mimetypes.guess_type(filename)[0]
+        if not content_type:
+            content_type = "image/png"
+            if "." not in filename:
+                filename = f"{filename or 'image'}.png"
+        group.update(image_upload=(filename, response.raw, content_type))
 
     for plugin in p.PluginImplementations(ISyndicate):
         group = plugin.prepare_group_for_syndication(local_id, group, profile)
